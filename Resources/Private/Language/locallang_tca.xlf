@@ -11,7 +11,7 @@
                 <source>Reference Source Page</source>
             </trans-unit>
             <trans-unit id="pages.tx_fbit_pagereferences_stop_mountpoint_pagetree">
-                <source>Don't mount subpages</source>
+                <source>Don't mount subpages?</source>
             </trans-unit>
             <trans-unit id="pages.tx_fbit_pagereferences_rewrite_links">
                 <source>Rewrite links in Frontend?</source>

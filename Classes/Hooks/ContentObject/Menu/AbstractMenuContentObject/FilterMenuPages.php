@@ -11,8 +11,12 @@ class FilterMenuPages implements AbstractMenuFilterPagesHookInterface
     {
         $includePage = true;
 
-        if ($obj->MP_array[0] && $obj->getSysPage()->getPage(explode('-', $obj->MP_array[0])[1])['tx_fbit_pagereferences_stop_mountpoint_pagetree']) {
-            $includePage = false;
+        if ($obj->MP_array[0]) {
+            $mountPageUid = explode('-', $obj->MP_array[0])[1];
+
+            if ($obj->getSysPage()->getPage($mountPageUid)['tx_fbit_pagereferences_stop_mountpoint_pagetree']) {
+                $includePage = false;
+            }
         }
 
         return $includePage;

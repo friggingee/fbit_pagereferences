@@ -4,23 +4,10 @@ call_user_func(
     function ($extKey, $table) {
         $tempColumns = [
             'tx_fbit_pagereferences_stop_mountpoint_pagetree' => [
-                'exclude' => 1,
                 'label' => 'LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.tx_fbit_pagereferences_stop_mountpoint_pagetree',
                 'config' => [
-                    'type' => 'select',
-                    'renderType' => 'selectTree',
-                    'foreign_table' => 'pages',
-                    'foreign_table_where' => 'pages.pid IN (###REC_FIELD_mount_pid###) AND pages.sys_language_uid IN (###REC_FIELD_sys_language_uid###) ORDER BY pages.sorting',
-                    'size' => 20,
-                    'treeConfig' => [
-                        'dataProvider' => \FBIT\PageReferences\Overrides\TYPO3\CMS\Core\Tree\TableConfiguration\DatabaseTreeDataProvider::class,
-                        'parentField' => 'pid',
-                        'rootUid' => '###REC_FIELD_mount_pid###',
-                        'appearance' => [
-                            'expandAll' => true,
-                            'showHeader' => true,
-                        ],
-                    ],
+                    'type' => 'check',
+                    'default' => '0'
                 ],
             ],
             'tx_fbit_pagereferences_rewrite_links' => [
