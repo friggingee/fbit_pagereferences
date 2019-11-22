@@ -12,6 +12,8 @@ call_user_func(
                     'source' => 'EXT:' . $extKey . '/Resources/Public/Icons/apps-pagetree-page-reference.svg',
                 ]
             );
+
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addStaticFile('FBIT.' . $extKey, 'Configuration/TypoScript', 'Page References Management');
     },
     'fbit_pagereferences'
 );

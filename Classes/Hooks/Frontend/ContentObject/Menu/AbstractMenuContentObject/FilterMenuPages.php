@@ -1,6 +1,6 @@
 <?php
 
-namespace FBIT\PageReferences\Hooks\ContentObject\Menu\AbstractMenuContentObject;
+namespace FBIT\PageReferences\Hooks\Frontend\ContentObject\Menu\AbstractMenuContentObject;
 
 use TYPO3\CMS\Frontend\ContentObject\Menu\AbstractMenuContentObject;
 use TYPO3\CMS\Frontend\ContentObject\Menu\AbstractMenuFilterPagesHookInterface;
