@@ -1,0 +1,346 @@
+<?php
+
+namespace FBIT\PageReferences\Hooks\Core\DataHandling\DataHandler\ProcessDatamapClass;
+
+use FBIT\PageReferences\Domain\Model\ReferencePage;
+use FBIT\PageReferences\Utility\RecordUtility;
+use FBIT\PageReferences\Utility\ReferencesUtility;
+use TYPO3\CMS\Backend\Controller\FormSlugAjaxController;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Database\RelationHandler;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Http\ServerRequest;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
+class UpdateReferencePageProperties
+{
+    protected $updateReferencePagesOnSourcePageSave = false;
+    protected $updateReferencePageOnEnablingPropertiesReferencing = false;
+    protected $resetReferencePageOnDisablingPropertiesReferencing = false;
+
+    protected $fullCurrentPageData = [];
+    protected $fullReferenceSourcePageData = [];
+    protected $fullReferencePageData = [];
+
+    protected $createdInlineRelations = [];
+
+    /**
+     * Adds the field which triggers the copying of field values from a source page to a reference to the list of fields
+     * which trigger a reloading of the page tree in order to update the page title display after copying.
+     *
+     * @param DataHandler $dataHandler
+     */
+    public function processDatamap_beforeStart(DataHandler $dataHandler)
+    {
+        $dataHandler->pagetreeRefreshFieldsFromPages[] = 'tx_fbit_pagereferences_reference_page_properties';
+    }
+
+    /**
+     * Provides functions to copy field values from a source page to a reference page and to reset these changes.
+     *
+     * @param array $incomingFieldArray
+     * @param string $table
+     * @param $pageUid
+     * @param $dataHandler
+     */
+    public function processDatamap_preProcessFieldArray(array &$incomingFieldArray, string $table, $pageUid, DataHandler &$dataHandler)
+    {
+        if ($table === 'pages') {
+
+            // Check if there's anything to do for us.
+            if ($this->doUpdateReferencePageProperties($incomingFieldArray, (int)$pageUid)) {
+                // Fetch the full data of the currently edited page - we possibly need more than is included in the $incomingFieldArray.
+                $this->fullCurrentPageData = BackendUtility::getRecord('pages', $pageUid);
+
+                if ($this->updateReferencePagesOnSourcePageSave) {
+                    // Check if the currently edited page has references in the current language.
+                    if (ReferencesUtility::hasReferences($pageUid, $this->fullCurrentPageData['sys_language_uid'])) {
+                        $this->fullReferenceSourcePageData = $this->fullCurrentPageData;
+                        // Get all reference page IDs in the current language.https://www.youtube.com/channel/UCdiqOyAeu__yBOZBt_Op0JQ
+                        $referencePages = ReferencesUtility::getReferences($pageUid, $this->fullCurrentPageData['sys_language_uid']);
+
+                        foreach ($referencePages as $referencePage) {
+                            $this->fullReferencePageData = BackendUtility::getRecord('pages', $referencePage['uid']);
+
+                            // Override reference page fields with source page values.
+                            $dataHandlerDataMap = [];
+                            $dataHandlerDataMap['pages'] = [];
+                            $dataHandlerDataMap['pages'][$referencePage['uid']] = $this->overrideReferencePageFieldsWithSourcePageValues($referencePage['uid'], true);
+
+                            $this->processThroughDataHandler($dataHandlerDataMap, []);
+                        }
+
+                        // trigger page tree update
+                        $dataHandler->pagetreeRefreshFieldsFromPages[] = 'tstamp';
+                    }
+                }
+
+                // update from source page
+                if ($this->updateReferencePageOnEnablingPropertiesReferencing && $this->fullCurrentPageData['content_from_pid']) {
+                    $this->fullReferenceSourcePageData = BackendUtility::getRecord('pages', $this->fullCurrentPageData['content_from_pid']);
+
+                    $incomingFieldArray = $this->overrideReferencePageFieldsWithSourcePageValues($pageUid, false);
+                }
+
+                // reset to original values
+                if ($this->resetReferencePageOnDisablingPropertiesReferencing) {
+                    $incomingFieldArray = unserialize($this->fullCurrentPageData['tx_fbit_pagereferences_original_page_properties']);
+                    $incomingFieldArray['tx_fbit_pagereferences_reference_page_properties'] = '0';
+                    $incomingFieldArray['tx_fbit_pagereferences_original_page_properties'] = '';
+
+                    $this->deleteRelationsCreatedOnLastBackupCreation($incomingFieldArray);
+                    $incomingFieldArray = $this->resolveInlineRelations($incomingFieldArray, $this->fullCurrentPageData['uid'], false);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param array $incomingFieldArray
+     * @param int $pageUid
+     * @return bool
+     */
+    protected function doUpdateReferencePageProperties(array $incomingFieldArray, int $pageUid)
+    {
+        // when clicking "Save and update references" on a reference source page
+        $this->updateReferencePagesOnSourcePageSave = GeneralUtility::_POST('_savedokandupdatereferences') && count($incomingFieldArray);
+
+        // when changing the "Reference page properties" field on a reference page
+        $triggerReferencePageOverride = !$this->updateReferencePagesOnSourcePageSave
+            && count($incomingFieldArray)
+            && GeneralUtility::_GET('route') === '/record/edit'
+            && is_array(GeneralUtility::_GET('edit'));
+
+        if ($triggerReferencePageOverride && isset($incomingFieldArray['tx_fbit_pagereferences_reference_page_properties'])) {
+            $pageData = BackendUtility::getRecord('pages', $pageUid);
+
+            $currentSetting = (int)$pageData['tx_fbit_pagereferences_reference_page_properties'];
+            $submittedSetting = (int)$incomingFieldArray['tx_fbit_pagereferences_reference_page_properties'];
+
+            $this->updateReferencePageOnEnablingPropertiesReferencing = $triggerReferencePageOverride
+                && $currentSetting === 0
+                && $submittedSetting === 1;
+
+            $this->resetReferencePageOnDisablingPropertiesReferencing = $triggerReferencePageOverride
+                && $currentSetting === 1
+                && $submittedSetting === 0;
+        }
+
+        return ($this->updateReferencePagesOnSourcePageSave || $this->updateReferencePageOnEnablingPropertiesReferencing || $this->resetReferencePageOnDisablingPropertiesReferencing);
+    }
+
+    /**
+     * @param int $referencePageUid
+     * @param bool $fromSourcePage
+     * @return array|mixed
+     */
+    protected function overrideReferencePageFieldsWithSourcePageValues(int $referencePageUid, $fromSourcePage = false)
+    {
+        $referenceSourcePageData = $this->fullReferenceSourcePageData;
+        $referenceTargetPageData = $fromSourcePage ? $this->fullReferencePageData : $this->fullCurrentPageData;
+
+        // Remove protected keys and values of "sleeping" (deleted) database columns from data which to update in reference pages.
+        $pageData = array_diff_key(
+            $referenceSourcePageData,
+            array_flip(ReferencePage::PROTECTED_PROPERTIES)
+        );
+        $pageData = array_filter(
+            $pageData,
+            function ($key) {
+                return strpos($key, 'zzz_') === false;
+            },
+            ARRAY_FILTER_USE_KEY
+        );
+
+        // Store original page properties as backup.
+        if (!empty($referenceTargetPageData['tx_fbit_pagereferences_original_page_properties'])) {
+            // Don't overwrite old backup
+            $originalPageData = unserialize($referenceTargetPageData['tx_fbit_pagereferences_original_page_properties']);
+        } else {
+            $originalPageData = array_filter(
+                $referenceTargetPageData,
+                function ($key) {
+                    return !in_array($key, ['uid', 'pid']) && strpos($key, 'zzz_') === false;
+                },
+                ARRAY_FILTER_USE_KEY
+            );
+            $originalPageData = $this->resolveInlineRelations($originalPageData, $referenceTargetPageData['uid'], false);
+        }
+
+        // Process inline relations after saving the backup.
+        // If we attempt this before, we will be seeing relations in the backup which only just have been created from
+        // the reference source page.
+        $pageData = $this->resolveInlineRelations($pageData, $referenceSourcePageData['uid'], true);
+
+        // Add created inline relations to backup array. This way we know which ones to delete when restoring the backup.
+        $originalPageData['createdInlineRelations'] = array_merge(
+            $originalPageData['createdInlineRelations'] ?: [],
+            $this->createdInlineRelations
+        );
+        $pageData['tx_fbit_pagereferences_original_page_properties'] = serialize($originalPageData);
+
+        $pageData['slug'] = $this->recreateSlug($pageData, $referencePageUid, $referenceTargetPageData['pid']);
+
+        // Set the flags again because they've been unset in the array_diff_key call above.
+        $pageData['tx_fbit_pagereferences_reference_page_properties'] = 1;
+        $pageData['tx_fbit_pagereferences_rewrite_links'] = $referenceTargetPageData['tx_fbit_pagereferences_rewrite_links'];
+
+        return $pageData;
+    }
+
+    /**
+     * @param array $recordData
+     * @param int $recordPid
+     * @param bool $createMissingRelations
+     * @return array
+     */
+    protected function resolveInlineRelations(array $recordData, int $recordPid, $createMissingRelations = false)
+    {
+        foreach ($recordData as $fieldName => $value) {
+            $recordData[$fieldName] = $this->resolveInlineField($fieldName, $recordPid, '', $createMissingRelations) ?: $value;
+        }
+
+        return $recordData;
+    }
+
+    /**
+     * @param string $fieldName
+     * @param int $recordPid
+     * @param string $fieldKey
+     * @param bool $createMissingRelations
+     * @return string|null
+     */
+    protected function resolveInlineField(string $fieldName, int $recordPid, $fieldKey = '', $createMissingRelations = false)
+    {
+        $fieldValue = null;
+
+        $fieldName = $fieldKey ?: $fieldName;
+
+        if ($GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['type'] === 'inline') {
+            // clean instance per field
+            $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
+            // resolve inline relations, fetch their IDs
+            $relationHandler->readForeignField(
+                $recordPid,
+                $GLOBALS['TCA']['pages']['columns'][$fieldName]['config']
+            );
+
+            $relatedRecords = $relationHandler->getValueArray(true);
+
+            if ($relatedRecords && $createMissingRelations) {
+                $relatedRecordsType = substr($relatedRecords[0], 0, strrpos($relatedRecords[0], '_'));
+
+                $relationCopyCmdMap = [];
+                $relationCopyCmdMap[$relatedRecordsType] = [];
+
+                foreach ($relatedRecords as $recordDataString) {
+                    $relatedRecordSourceId = substr($recordDataString, strrpos($recordDataString, '_') + 1, strlen($recordDataString));
+
+                    if (!RecordUtility::isTranslation($relatedRecordSourceId, $relatedRecordsType)) {
+                        $relationCopyCmdMap[$relatedRecordsType][$relatedRecordSourceId] = [
+                            'copy' => [
+                                'action' => 'paste',
+                                'target' => $this->fullCurrentPageData['uid'],
+                                'update' => [
+                                    'uid_foreign' => $this->fullCurrentPageData['uid']
+                                ],
+                            ],
+                        ];
+                    }
+                }
+
+                $temporaryDataHandler = $this->processThroughDataHandler([], $relationCopyCmdMap);
+
+                $this->createdInlineRelations = array_merge_recursive($this->createdInlineRelations, $temporaryDataHandler->copyMappingArray_merged);
+                $fieldValue = implode(',', $temporaryDataHandler->copyMappingArray_merged[$relatedRecordsType]);
+            } else {
+                $fieldValue = implode(',', $relationHandler->getValueArray());
+            }
+        }
+
+        return $fieldValue;
+    }
+
+    /**
+     * @param array $pageData
+     */
+    protected function deleteRelationsCreatedOnLastBackupCreation(array $pageData)
+    {
+        $createdInlineRelations = $pageData['createdInlineRelations'];
+
+        $relationDeleteCmdMap = [];
+
+        foreach ($createdInlineRelations as $tableName => $idMap) {
+            $createdRelationsIds = array_values($idMap);
+
+            $relationDeleteCmdMap[$tableName] = [];
+
+            foreach ($createdRelationsIds as $createdRelationId) {
+                if (!RecordUtility::isTranslation($createdRelationId, $tableName)) {
+                    $relationDeleteCmdMap[$tableName][$createdRelationId] = [
+                        'delete' => [
+                            'action' => 'delete',
+                            'table' => $tableName,
+                            'uid' => $createdRelationId
+                        ]
+                    ];
+
+                    $this->processThroughDataHandler([], $relationDeleteCmdMap);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param array $pageData
+     * @param int $referencePageUid
+     * @param int $referencePagePid
+     * @return string
+     */
+    protected function recreateSlug(array $pageData, int $referencePageUid, int $referencePagePid)
+    {
+        // Re-create slug based on possibly changed page title
+        $request = GeneralUtility::makeInstance(ServerRequest::class);
+
+        $requestQueryParameters = [
+            'tableName' => 'pages',
+            'pageId' => $referencePageUid,
+            'recordId' => $referencePageUid,
+            'language' => $pageData['sys_language_uid'],
+            'fieldName' => 'slug',
+            'command' => '',
+            'parentPageId' => $referencePagePid,
+        ];
+
+        $requestQueryParameters['signature'] = GeneralUtility::hmac(
+            implode('', $requestQueryParameters),
+            FormSlugAjaxController::class
+        );
+
+        $requestQueryParameters['mode'] = 'recreate';
+        $requestQueryParameters['values'] = ['title' => $pageData['title']];
+
+        $request = $request->withParsedBody($requestQueryParameters);
+
+        $response = GeneralUtility::makeInstance(FormSlugAjaxController::class)->suggestAction($request);
+        $slugSuggestionData = json_decode($response->getBody());
+        $slug = $slugSuggestionData->proposal;
+
+        return $slug;
+    }
+
+    /**
+     * @param array $dataMap
+     * @param array $cmdMap
+     * @return object|DataHandler
+     */
+    protected function processThroughDataHandler($dataMap = [], $cmdMap = [])
+    {
+        $temporaryDataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        $temporaryDataHandler->start($dataMap, $cmdMap);
+        $temporaryDataHandler->process_datamap();
+        $temporaryDataHandler->process_cmdmap();
+
+        return $temporaryDataHandler;
+    }
+}

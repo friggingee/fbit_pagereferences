@@ -7,11 +7,14 @@
             <trans-unit id="pages.references">
                 <source>Reference</source>
             </trans-unit>
+            <trans-unit id="pages.doktype.pagereference">
+                <source>Page Reference</source>
+            </trans-unit>
             <trans-unit id="pages.tx_fbit_pagereferences_reference_id">
                 <source>Reference Source Page</source>
             </trans-unit>
-            <trans-unit id="pages.tx_fbit_pagereferences_stop_mountpoint_pagetree">
-                <source>Don't mount subpages?</source>
+            <trans-unit id="pages.tx_fbit_pagereferences_reference_page_properties">
+                <source>Reference page properties?</source>
             </trans-unit>
             <trans-unit id="pages.tx_fbit_pagereferences_rewrite_links">
                 <source>Rewrite links in Frontend?</source>

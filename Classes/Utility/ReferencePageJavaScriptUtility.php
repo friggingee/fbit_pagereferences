@@ -10,15 +10,15 @@ use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Query;
 
-class MountPageUtility
+class ReferencePageJavaScriptUtility
 {
     protected $contentSelectFields = ['uid', 'colPos', 'sorting', 'sys_language_uid', 'l10n_source', 'header', 'hidden', 'deleted', 'CType'];
 
-    public function getMountPageContentData(ServerRequestInterface $request, ResponseInterface $response)
+    public function getReferencePageContentData(ServerRequestInterface $request, ResponseInterface $response)
     {
         $requestParams = $request->getQueryParams();
 
-        $mountPageId = $requestParams['pageId'];
+        $referencePageId = $requestParams['pageId'];
 
         /** @var QueryBuilder $queryBuilder */
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
@@ -26,13 +26,15 @@ class MountPageUtility
             ->from('tt_content')
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->eq('pid', $mountPageId),
-                    $queryBuilder->expr()->eq('sys_language_uid', 0)
+                    $queryBuilder->expr()->eq('pid', $referencePageId),
+                    $queryBuilder->expr()->eq('sys_language_uid', 0),
+                    $queryBuilder->expr()->neq('records', '""')
                 )
             )
             ->execute()
             ->fetchAll();
 
+        $data = [];
         $data['pageContentData'] = array_map(
             function ($contentRecord) {
                 $contentRecord['records'] = str_replace('tt_content_', '', $contentRecord['records']);
@@ -47,15 +49,16 @@ class MountPageUtility
             ->from('tt_content')
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->eq('pid', $mountPageId),
-                    $queryBuilder->expr()->gt('sys_language_uid', 0)
+                    $queryBuilder->expr()->eq('pid', $referencePageId),
+                    $queryBuilder->expr()->gt('sys_language_uid', 0),
+                    $queryBuilder->expr()->neq('records', '""')
                 )
             )
             ->execute()
             ->fetchAll();
 
         $data['translatedContentUids'] = array_map(
-            function($contentRecord) {
+            function ($contentRecord) {
                 return $contentRecord['uid'];
             },
             $translatedPageContentData
@@ -70,8 +73,8 @@ class MountPageUtility
     {
         $requestParams = $request->getQueryParams();
 
-        $mountPageId = $requestParams['pageId'];
-        $mountedPageId = BackendUtility::getRecord('pages', $mountPageId)['mount_pid'];
+        $referencePageId = $requestParams['pageId'];
+        $referencedPageId = BackendUtility::getRecord('pages', $referencePageId)['content_from_pid'];
 
         /** @var QueryBuilder $queryBuilder */
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
@@ -79,7 +82,7 @@ class MountPageUtility
             ->from('tt_content')
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->eq('pid', $mountedPageId),
+                    $queryBuilder->expr()->eq('pid', $referencedPageId),
                     $queryBuilder->expr()->eq('sys_language_uid', 0),
                     $queryBuilder->expr()->neq('sorting', 1000000000)
                 )
@@ -89,7 +92,7 @@ class MountPageUtility
 
         foreach ($pageContentData as $pageContentRecord) {
             $fields = [
-                'pid' => $mountPageId,
+                'pid' => $referencePageId,
                 'tstamp' => time(),
                 'crdate' => time(),
                 'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
@@ -116,7 +119,7 @@ class MountPageUtility
                 ->from('tt_content')
                 ->where(
                     $queryBuilder->expr()->andX(
-                        $queryBuilder->expr()->eq('pid', $mountedPageId),
+                        $queryBuilder->expr()->eq('pid', $referencedPageId),
                         $queryBuilder->expr()->gt('sys_language_uid', 0),
                         $queryBuilder->expr()->eq('l10n_source', $pageContentRecord['uid'])
                     )
