@@ -1,9 +1,9 @@
 {
     "name": "fbit/fbit-pagereferences",
     "type": "typo3-cms-extension",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "require": {
-        "typo3/cms": "^9"
+        "typo3/cms": "9.0.0-9.99.99"
     },
     "autoload": {
         "psr-4": {
