@@ -21,6 +21,7 @@ use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\LanguageAspect;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 /**
  * Resolves links to pages and the parameters given
@@ -36,15 +37,17 @@ class PageLinkHandler extends \TYPO3\CMS\Core\LinkHandling\PageLinkHandler
      */
     public function resolveHandlerData(array $data): array
     {
-        $linkTargetPageUid = (int)$data['uid'];
+        if ($GLOBALS['TSFE'] instanceof TypoScriptFrontendController) {
+            $linkTargetPageUid = (int)$data['uid'];
 
-        $currentSite = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId((int)$GLOBALS['TSFE']->id);
-        $context = GeneralUtility::makeInstance(Context::class);
-        $languageAspect = $context->getAspect('language');
+            $currentSite = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId((int)$GLOBALS['TSFE']->id);
+            $context = GeneralUtility::makeInstance(Context::class);
+            $languageAspect = $context->getAspect('language');
 
-        if ($linkTargetPageUid && ReferencesUtility::hasReferenceInSite($linkTargetPageUid, $languageAspect->getId(), $currentSite)) {
-            $newLinkTargetPage = ReferencesUtility::getReferenceInSite($linkTargetPageUid, $languageAspect->getId(), $currentSite);
-            $data['uid'] = $newLinkTargetPage['uid'];
+            if ($linkTargetPageUid && ReferencesUtility::hasReferenceInSite($linkTargetPageUid, $languageAspect->getId(), $currentSite)) {
+                $newLinkTargetPage = ReferencesUtility::getReferenceInSite($linkTargetPageUid, $languageAspect->getId(), $currentSite);
+                $data['uid'] = $newLinkTargetPage['uid'];
+            }
         }
 
         $result = parent::resolveHandlerData($data);
