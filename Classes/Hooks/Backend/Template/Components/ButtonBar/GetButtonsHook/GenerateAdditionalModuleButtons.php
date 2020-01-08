@@ -44,7 +44,7 @@ class GenerateAdditionalModuleButtons
                 break;
             case '/record/edit':
                 $requestParameters = GeneralUtility::_GET();
-                if (array_key_first($requestParameters['edit']) === 'pages') {
+                if (is_array($requestParameters['edit']) && array_key_first($requestParameters['edit']) === 'pages') {
                     $currentPage = BackendUtility::getRecord('pages', array_key_first(GeneralUtility::_GET('edit')['pages']));
 
                     // only show the buttons on pages referencing another page
