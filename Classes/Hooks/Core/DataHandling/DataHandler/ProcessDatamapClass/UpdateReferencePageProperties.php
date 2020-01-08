@@ -56,7 +56,7 @@ class UpdateReferencePageProperties
                     // Check if the currently edited page has references in the current language.
                     if (ReferencesUtility::hasReferences($pageUid, $this->fullCurrentPageData['sys_language_uid'])) {
                         $this->fullReferenceSourcePageData = $this->fullCurrentPageData;
-                        // Get all reference page IDs in the current language.https://www.youtube.com/channel/UCdiqOyAeu__yBOZBt_Op0JQ
+                        // Get all reference page IDs in the current language.
                         $referencePages = ReferencesUtility::getReferences($pageUid, $this->fullCurrentPageData['sys_language_uid']);
 
                         foreach ($referencePages as $referencePage) {
@@ -77,7 +77,11 @@ class UpdateReferencePageProperties
 
                 // update from source page
                 if ($this->updateReferencePageOnEnablingPropertiesReferencing && $this->fullCurrentPageData['content_from_pid']) {
-                    $this->fullReferenceSourcePageData = BackendUtility::getRecord('pages', $this->fullCurrentPageData['content_from_pid']);
+                    $this->fullReferenceSourcePageData = BackendUtility::getRecordLocalization(
+                        'pages',
+                        $this->fullCurrentPageData['content_from_pid'],
+                        $this->fullCurrentPageData['sys_language_uid']
+                    )[0];
 
                     $incomingFieldArray = $this->overrideReferencePageFieldsWithSourcePageValues($pageUid, false);
                 }
