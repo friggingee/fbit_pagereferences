@@ -77,11 +77,15 @@ class UpdateReferencePageProperties
 
                 // update from source page
                 if ($this->updateReferencePageOnEnablingPropertiesReferencing && $this->fullCurrentPageData['content_from_pid']) {
-                    $this->fullReferenceSourcePageData = BackendUtility::getRecordLocalization(
-                        'pages',
-                        $this->fullCurrentPageData['content_from_pid'],
-                        $this->fullCurrentPageData['sys_language_uid']
-                    )[0];
+                    if ($this->fullCurrentPageData['sys_language_uid'] > 0) {
+                        $this->fullReferenceSourcePageData = BackendUtility::getRecordLocalization(
+                            'pages',
+                            $this->fullCurrentPageData['content_from_pid'],
+                            $this->fullCurrentPageData['sys_language_uid']
+                        )[0];
+                    } else {
+                        $this->fullReferenceSourcePageData = BackendUtility::getRecord('pages', $this->fullCurrentPageData['content_from_pid']);
+                    }
 
                     $incomingFieldArray = $this->overrideReferencePageFieldsWithSourcePageValues($pageUid, false);
                 }
