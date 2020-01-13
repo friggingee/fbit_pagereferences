@@ -70,7 +70,7 @@ class GenerateAdditionalModuleButtons
                             $sourcePageUid = $currentPage['l10n_parent'];
                         }
 
-                        if (ReferencesUtility::hasReferences($sourcePageUid, $currentPage['sys_language_uid'])) {
+                        if (ReferencesUtility::hasReferences((int)$sourcePageUid, (int)$currentPage['sys_language_uid'])) {
                             $this->generateSaveAndUpdateReferencesButton($buttonBar, $buttons);
                         }
                     }
