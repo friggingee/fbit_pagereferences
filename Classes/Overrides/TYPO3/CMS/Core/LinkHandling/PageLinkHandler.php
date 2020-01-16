@@ -16,6 +16,7 @@ namespace FBIT\PageReferences\Overrides\TYPO3\CMS\Core\LinkHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
+use FBIT\PageReferences\Domain\Model\ReferencePage;
 use FBIT\PageReferences\Utility\ReferencesUtility;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\LanguageAspect;
@@ -44,8 +45,13 @@ class PageLinkHandler extends \TYPO3\CMS\Core\LinkHandling\PageLinkHandler
             $context = GeneralUtility::makeInstance(Context::class);
             $languageAspect = $context->getAspect('language');
 
-            if ($linkTargetPageUid && ReferencesUtility::hasReferenceInSite($linkTargetPageUid, $languageAspect->getId(), $currentSite)) {
-                $newLinkTargetPage = ReferencesUtility::getReferenceInSite($linkTargetPageUid, $languageAspect->getId(), $currentSite);
+            $newLinkTargetPage = ReferencesUtility::getReferenceInSite($linkTargetPageUid, $currentSite, $languageAspect->getId());
+            // if references yielded no target, try rewrite targets
+            if ($newLinkTargetPage === null) {
+                $newLinkTargetPage = ReferencesUtility::getRewriteTargetInSite($linkTargetPageUid, $currentSite, $languageAspect->getId());
+            }
+
+            if (!empty($newLinkTargetPage['uid'])) {
                 $data['uid'] = $newLinkTargetPage['uid'];
             }
         }

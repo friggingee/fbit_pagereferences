@@ -26,7 +26,7 @@ call_user_func(
                         $dokType => 'apps-pagetree-page-reference',
                     ],
                 ],
-                // add all page standard fields and tabs to your new page type
+                // add all page standard fields and tabs to the new page type
                 'types' => [
                     (string)$dokType => [
                         'showitem' => $GLOBALS['TCA'][$table]['types'][\TYPO3\CMS\Frontend\Page\PageRepository::DOKTYPE_DEFAULT]['showitem']
@@ -37,6 +37,13 @@ call_user_func(
 
         // define new fields
         $tempColumns = [
+            'tx_fbit_pagereferences_reference_source_page' => [
+                'label' => 'LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.tx_fbit_pagereferences_reference_source_page',
+                'config' => [
+                    'type' => 'input',
+                    'readOnly' => true,
+                ]
+            ],
             'tx_fbit_pagereferences_reference_page_properties' => [
                 'label' => 'LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.tx_fbit_pagereferences_reference_page_properties',
                 'config' => [
@@ -89,6 +96,9 @@ call_user_func(
         \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'content_from_pid', $typelist, 'after:--div--;LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.references');
         \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'tx_fbit_pagereferences_reference_page_properties', $typelist, 'after:content_from_pid');
         \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'tx_fbit_pagereferences_rewrite_links', $typelist, 'after:tx_fbit_pagereferences_reference_page_properties');
+        // also show on default pages
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'tx_fbit_pagereferences_rewrite_links', '1', 'after:subtitle');
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'tx_fbit_pagereferences_reference_source_page', '1', 'after:tx_fbit_pagereferences_rewrite_links');
 
         // allow to change the icon if the page is a proper reference
         $GLOBALS['TCA']['pages']['ctrl']['typeicon_classes']['userFunc'] = \FBIT\PageReferences\UserFuncs\TCA\Pages\Ctrl\TypeiconClasses\UserFunc\ReferencedPage::class . '->overrideIconIfPageIsFullReference';

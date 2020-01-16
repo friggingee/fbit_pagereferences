@@ -75,12 +75,6 @@ define(['jquery'], function ($) {
                             }
                         });
 
-                        document.addEventListener(PageReferences.CONVERT_REFERENCES_TO_COPIES_COMPLETE, function() {
-                            // @TODO WHY U NOT FIRE?!
-                            frameElement.src = frameElement.src;
-                        });
-                        PageReferences.conversionDoneEvent = new CustomEvent(PageReferences.CONVERT_REFERENCES_TO_COPIES_COMPLETE);
-
                         $.each(pageContentData, function (index, recordData) {
                             var parameters = {};
                             parameters['cmd'] = {};
@@ -213,8 +207,8 @@ define(['jquery'], function ($) {
                 allCount - PageReferences.progressCount[which].success - PageReferences.progressCount[which].failed
             );
 
+            // reload if all done
             if (PageReferences.progressCount.copy.success + PageReferences.progressCount.copy.failed >= allCount) {
-                window.dispatchEvent(PageReferences.conversionDoneEvent);
                 frameElement.src = frameElement.src;
             }
         }

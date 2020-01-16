@@ -48,26 +48,22 @@ class ReferencesUtility
         return $referencePages;
     }
 
-    /**
-     * @param int $referenceSourcePageUid
-     * @param Site $site
-     * @return bool
-     * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
-     */
-    static public function hasReferenceInSite(int $referenceSourcePageUid, int $languageId = 0, Site $site)
+    static public function getRewriteTargets(int $referenceSourcePageUid, int $languageId = 0)
     {
-        $hasReferences = false;
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
+        $referencePages = $queryBuilder->select('uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->andX(
+                    $queryBuilder->expr()->like('tx_fbit_pagereferences_reference_source_page', '"%' . $referenceSourcePageUid . '%"'),
+                    $queryBuilder->expr()->eq('sys_language_uid', $languageId)
+                )
+            )
+            ->execute()
+            ->fetchAll();
 
-        $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
-        $possibleReferences = ReferencesUtility::getReferences($referenceSourcePageUid, $languageId);
-
-        foreach ($possibleReferences as $reference) {
-            if ($siteFinder->getSiteByPageId($reference['uid'])->getIdentifier() === $site->getIdentifier()) {
-                $hasReferences = true;
-            }
-        }
-
-        return $hasReferences;
+        return $referencePages;
     }
 
     /**
@@ -76,12 +72,35 @@ class ReferencesUtility
      * @return mixed|null
      * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
      */
-    static public function getReferenceInSite(int $referenceSourcePageUid, int $languageId = 0, Site $site)
+    static public function getReferenceInSite(int $referenceSourcePageUid, Site $site, int $languageId = 0)
     {
         $referenceInSite = null;
         $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
 
         $allReferences = ReferencesUtility::getReferences($referenceSourcePageUid, $languageId);
+
+        foreach ($allReferences as $reference) {
+            if ($siteFinder->getSiteByPageId($reference['uid'])->getIdentifier() === $site->getIdentifier()) {
+                $referenceInSite = $reference;
+                break;
+            }
+        }
+
+        return $referenceInSite;
+    }
+
+    /**
+     * @param int $referenceSourcePageUid
+     * @param Site $site
+     * @return mixed|null
+     * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
+     */
+    static public function getRewriteTargetInSite(int $referenceSourcePageUid, Site $site, int $languageId = 0)
+    {
+        $referenceInSite = null;
+        $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
+
+        $allReferences = ReferencesUtility::getRewriteTargets($referenceSourcePageUid, $languageId);
 
         foreach ($allReferences as $reference) {
             if ($siteFinder->getSiteByPageId($reference['uid'])->getIdentifier() === $site->getIdentifier()) {

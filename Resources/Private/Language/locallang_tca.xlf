@@ -8,16 +8,19 @@
                 <source>Reference</source>
             </trans-unit>
             <trans-unit id="pages.doktype.pagereference">
-                <source>Page Reference</source>
+                <source>Page reference</source>
+            </trans-unit>
+            <trans-unit id="pages.tx_fbit_pagereferences_reference_source_page">
+                <source>Last reference source page</source>
             </trans-unit>
             <trans-unit id="pages.tx_fbit_pagereferences_reference_id">
-                <source>Reference Source Page</source>
+                <source>Reference source page</source>
             </trans-unit>
             <trans-unit id="pages.tx_fbit_pagereferences_reference_page_properties">
                 <source>Reference page properties?</source>
             </trans-unit>
             <trans-unit id="pages.tx_fbit_pagereferences_rewrite_links">
-                <source>Rewrite links in Frontend?</source>
+                <source>Rewrite links in frontend?</source>
             </trans-unit>
         </body>
     </file>
