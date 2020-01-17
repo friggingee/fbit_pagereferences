@@ -41,7 +41,6 @@ call_user_func(
                 'label' => 'LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.tx_fbit_pagereferences_reference_source_page',
                 'config' => [
                     'type' => 'input',
-                    'readOnly' => true,
                 ]
             ],
             'tx_fbit_pagereferences_reference_page_properties' => [

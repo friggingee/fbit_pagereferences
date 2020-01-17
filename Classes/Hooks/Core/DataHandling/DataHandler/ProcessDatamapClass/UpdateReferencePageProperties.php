@@ -106,7 +106,9 @@ class UpdateReferencePageProperties
     public function processDatamap_postProcessFieldArray(string $status, string $table, $id, array &$fieldArray, DataHandler $dataHandler) {
         if ($table === 'pages') {
             if (!empty($fieldArray['content_from_pid'])) {
-                $fieldArray['tx_fbit_pagereferences_reference_source_page'] = $fieldArray['content_from_pid'];
+                if (BackendUtility::getRecord('pages', $id)['doktype'] === ReferencePage::DOKTYPE) {
+                    $fieldArray['tx_fbit_pagereferences_reference_source_page'] = $fieldArray['content_from_pid'];
+                }
             }
         }
     }

@@ -35,8 +35,11 @@ class GenerateAdditionalModuleButtons
 
                 // only show the buttons on pages referencing another page
                 if (
-                    $currentPage['content_from_pid'] > 0
-                    && $currentPage['doktype'] === ReferencePage::DOKTYPE
+                    (
+                        $currentPage['content_from_pid'] > 0
+                        && $currentPage['doktype'] === ReferencePage::DOKTYPE
+                    )
+                    || $currentPage['tx_fbit_pagereferences_reference_source_page'] > 0
                 ) {
                     $this->generateCreateContentReferencesButton($buttonBar, $buttons);
                     $this->generateConvertReferencesToCopiesButton($buttonBar, $buttons);
@@ -47,19 +50,20 @@ class GenerateAdditionalModuleButtons
                 if (is_array($requestParameters['edit']) && array_key_first($requestParameters['edit']) === 'pages') {
                     $currentPage = BackendUtility::getRecord('pages', array_key_first(GeneralUtility::_GET('edit')['pages']));
 
-                    // only show the buttons on pages referencing another page
+                    $originalLanguagePageData = $currentPage;
+
                     if (
-                        (
-                            $currentPage['content_from_pid'] > 0
-                            && $currentPage['doktype'] === ReferencePage::DOKTYPE
-                        )
-                        || (
-                            $currentPage['l10n_parent'] > 0
-                            && $currentPage['sys_language_uid'] > 0
-                            && $currentPage['doktype'] === ReferencePage::DOKTYPE
-                            && BackendUtility::getRecord('pages', $currentPage['l10n_parent'])['content_from_pid'] > 0
-                        )
+                        $currentPage['l10n_parent'] > 0
+                        && $currentPage['sys_language_uid'] > 0
                     ) {
+                        $originalLanguagePageData = BackendUtility::getRecord('pages', $currentPage['l10n_parent']);
+                    }
+
+                    $showGoToReferenceSourcePageButton = $originalLanguagePageData['content_from_pid'] > 0;
+                    $showGoToReferenceSourcePageButton = $showGoToReferenceSourcePageButton ?: $originalLanguagePageData['tx_fbit_pagereferences_reference_source_page'] > 0;
+
+                    // only show the buttons on pages with a connection to a reference source page
+                    if ($showGoToReferenceSourcePageButton) {
                         $this->generateGoToReferenceSourcePageButton($buttonBar, $buttons);
                     }
 

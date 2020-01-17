@@ -159,13 +159,21 @@ define(['jquery'], function ($) {
             });
         },
 
+        disableLastReferenceSourcePageField: function () {
+            var lastReferenceSourcePageId = $('[name*=tx_fbit_pagereferences_reference_source_page]').val();
+            $('[name*=tx_fbit_pagereferences_reference_source_page]').remove();
+            $('[data-formengine-input-name*=tx_fbit_pagereferences_reference_source_page]')
+                .attr('readonly', 'readonly').attr('disabled', 'disabled').val(lastReferenceSourcePageId);
+        },
+
         enableGoToReferenceSourcePageButton: function () {
             $('a.fbitpagereferences-gotoreferencesourcepage').on('click', function () {
                 var referencedPageIdParameter = '%5B' + PageReferences.pageId + '%5D';
-                var referenceSourcePageIdParameter = '%5B' + $('[name*=content_from_pid]').val().split('_')[1] + '%5D';
+                var referenceSourcePageIdParameter = $('[name*=content_from_pid]').val().split('_')[1];
+                referenceSourcePageIdParameter = referenceSourcePageIdParameter || $('[data-formengine-input-name*=tx_fbit_pagereferences_reference_source_page]').val();
 
                 var currentFrameSrc = new URL(frameElement.src);
-                var newFramePath = $('#EditDocumentController').attr('action').replace(referencedPageIdParameter, referenceSourcePageIdParameter);
+                var newFramePath = $('#EditDocumentController').attr('action').replace(referencedPageIdParameter, '%5B' + referenceSourcePageIdParameter + '%5D');
 
                 var newFrameSrc = new URL(currentFrameSrc.origin + newFramePath);
                 newFrameSrc.searchParams.set('returnUrl', frameElement.src);
@@ -174,7 +182,7 @@ define(['jquery'], function ($) {
             });
         },
 
-        initializeProgressBar: function(which, allCount) {
+        initializeProgressBar: function (which, allCount) {
             PageReferences.progressCount[which] = {
                 success: 0,
                 failed: 0
@@ -183,7 +191,7 @@ define(['jquery'], function ($) {
             $('.fbitpagereferences-convertreferencestocopies-progress .progress-' + which + ' .all').text(allCount);
         },
 
-        updateProgressBar: function(which, allCount, success) {
+        updateProgressBar: function (which, allCount, success) {
             if (success) {
                 PageReferences.progressCount[which].success++;
             } else {
@@ -226,6 +234,7 @@ define(['jquery'], function ($) {
             var tableData = $('[data-table]').data();
             this.pageId = tableData['uid'];
 
+            this.disableLastReferenceSourcePageField();
             this.enableGoToReferenceSourcePageButton();
         }
     };

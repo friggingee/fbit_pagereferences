@@ -74,7 +74,11 @@ class ReferencePageJavaScriptUtility
         $requestParams = $request->getQueryParams();
 
         $referencePageId = $requestParams['pageId'];
-        $referencedPageId = BackendUtility::getRecord('pages', $referencePageId)['content_from_pid'];
+
+        $referencePageData = BackendUtility::getRecord('pages', $referencePageId);
+
+        $referencedPageId = $referencePageData['content_from_pid'];
+        $referencedPageId = $referencedPageId ?: $referencePageData['tx_fbit_pagereferences_reference_source_page'];
 
         /** @var QueryBuilder $queryBuilder */
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
