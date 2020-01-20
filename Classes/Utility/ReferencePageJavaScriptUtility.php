@@ -69,6 +69,12 @@ class ReferencePageJavaScriptUtility
         return $response;
     }
 
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @return ResponseInterface
+     * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
+     */
     public function createContentReferences(ServerRequestInterface $request, ResponseInterface $response)
     {
         $requestParams = $request->getQueryParams();
@@ -79,6 +85,9 @@ class ReferencePageJavaScriptUtility
 
         $referencedPageId = $referencePageData['content_from_pid'];
         $referencedPageId = $referencedPageId ?: $referencePageData['tx_fbit_pagereferences_reference_source_page'];
+
+        $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($referencePageId);
+        $availableLanguages = $site->getAvailableLanguages($GLOBALS['BE_USER']);
 
         /** @var QueryBuilder $queryBuilder */
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
@@ -124,7 +133,18 @@ class ReferencePageJavaScriptUtility
                 ->where(
                     $queryBuilder->expr()->andX(
                         $queryBuilder->expr()->eq('pid', $referencedPageId),
-                        $queryBuilder->expr()->gt('sys_language_uid', 0),
+                        $queryBuilder->expr()->in(
+                            'sys_language_uid',
+                            implode(
+                                ',',
+                                array_map(
+                                    function(SiteLanguage $siteLanguage) {
+                                        return $siteLanguage->getLanguageId();
+                                    },
+                                    $availableLanguages
+                                )
+                            )
+                        ),
                         $queryBuilder->expr()->eq('l10n_source', $pageContentRecord['uid'])
                     )
                 )
@@ -135,6 +155,10 @@ class ReferencePageJavaScriptUtility
             foreach ($contentRecordTranslations as $contentRecordTranslation) {
                 $fields['sys_language_uid'] = $contentRecordTranslation['sys_language_uid'];
                 $fields['l10n_source'] = $originalLanguagecontentReferenceUid;
+                $fields['records'] = 'tt_content_' . $contentRecordTranslation['uid'];
+                $fields['header'] = $contentRecordTranslation['header'];
+                $fields['hidden'] = $contentRecordTranslation['hidden'];
+                $fields['deleted'] = $contentRecordTranslation['deleted'];
 
                 $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
                 $queryBuilder->insert('tt_content')
