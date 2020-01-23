@@ -4,9 +4,13 @@ namespace FBIT\PageReferences\Utility;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Controller\SimpleDataHandlerController;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Http\JsonResponse;
+use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Query;
 
@@ -16,57 +20,73 @@ class ReferencePageJavaScriptUtility
 
     public function getReferencePageContentData(ServerRequestInterface $request, ResponseInterface $response)
     {
+        $data = [];
+
         $requestParams = $request->getQueryParams();
 
         $referencePageId = $requestParams['pageId'];
+        $referencePageData = BackendUtility::getRecord('pages', $referencePageId);
+
+        $referencedPageId = $referencePageData['content_from_pid'];
+        $referencedPageId = $referencedPageId ?: $referencePageData['tx_fbit_pagereferences_reference_source_page'];
 
         /** @var QueryBuilder $queryBuilder */
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
-        $pageContentData = $queryBuilder->select(...['uid', 'records', 'colPos'])
+        $referencedPageContentData = $queryBuilder->select('uid')
             ->from('tt_content')
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->eq('pid', $referencePageId),
-                    $queryBuilder->expr()->eq('sys_language_uid', 0),
-                    $queryBuilder->expr()->neq('records', '""')
+                    $queryBuilder->expr()->eq('pid', $referencedPageId),
+                    $queryBuilder->expr()->eq('sys_language_uid', 0)
                 )
             )
             ->execute()
             ->fetchAll();
-
-        $data = [];
-        $data['pageContentData'] = array_map(
-            function ($contentRecord) {
-                $contentRecord['records'] = str_replace('tt_content_', '', $contentRecord['records']);
-                $contentRecord['records'] = explode(',', $contentRecord['records']);
-                return $contentRecord;
-            },
-            $pageContentData
-        );
 
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
-        $translatedPageContentData = $queryBuilder->select(...['uid'])
+        $queryBuilder->getRestrictions()->removeAll();
+        $referencePageContentData = $queryBuilder
+            ->select(...[
+                'uid',
+                'sorting',
+                'sys_language_uid',
+                'l10n_source',
+                'deleted',
+                'hidden',
+                'records'
+            ])
             ->from('tt_content')
             ->where(
-                $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->eq('pid', $referencePageId),
-                    $queryBuilder->expr()->gt('sys_language_uid', 0),
-                    $queryBuilder->expr()->neq('records', '""')
-                )
+                $queryBuilder->expr()->eq('pid', $referencePageId),
+                $queryBuilder->expr()->eq('CType', '"shortcut"')
             )
             ->execute()
             ->fetchAll();
 
-        $data['translatedContentUids'] = array_map(
-            function ($contentRecord) {
-                return $contentRecord['uid'];
-            },
-            $translatedPageContentData
-        );
+        foreach ($referencePageContentData as $index => $referenceRecordData) {
+            $linkedRecordUid = str_replace('tt_content_', '', $referenceRecordData['records']);
+
+            $referencePageContentData[$index]['records'] = $linkedRecordUid;
+        }
+
+        $data['recordsToCopy'] = $referencedPageContentData;
+        $data['recordsToAdjust'] = $referencePageContentData;
 
         $response->getBody()->write(json_encode($data));
 
         return $response;
+    }
+
+    public function callSimpleDataHandler(ServerRequestInterface $request, ResponseInterface $response) {
+        $simpleDataHandler = GeneralUtility::makeInstance(SimpleDataHandlerController::class);
+        $simpleDataHandlerResponse = $simpleDataHandler->processAjaxRequest($request);
+
+        $tce = $simpleDataHandler->__get('tce');
+
+        $simpleDataHandlerResponseContent = json_decode($simpleDataHandlerResponse->getBody()->getContents(), 1);
+        $simpleDataHandlerResponseContent['tce'] = $tce;
+
+        return new JsonResponse($simpleDataHandlerResponseContent);
     }
 
     /**
@@ -96,8 +116,7 @@ class ReferencePageJavaScriptUtility
             ->where(
                 $queryBuilder->expr()->andX(
                     $queryBuilder->expr()->eq('pid', $referencedPageId),
-                    $queryBuilder->expr()->eq('sys_language_uid', 0),
-                    $queryBuilder->expr()->neq('sorting', 1000000000)
+                    $queryBuilder->expr()->eq('sys_language_uid', 0)
                 )
             )
             ->execute()
@@ -125,7 +144,7 @@ class ReferencePageJavaScriptUtility
                 ->values($fields)
                 ->execute();
 
-            $originalLanguagecontentReferenceUid = $queryBuilder->getConnection()->lastInsertId();
+            $originalLanguageContentReferenceUid = $queryBuilder->getConnection()->lastInsertId();
 
             $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
             $contentRecordTranslations = $queryBuilder->select(...$this->contentSelectFields)
@@ -138,7 +157,7 @@ class ReferencePageJavaScriptUtility
                             implode(
                                 ',',
                                 array_map(
-                                    function(SiteLanguage $siteLanguage) {
+                                    function (SiteLanguage $siteLanguage) {
                                         return $siteLanguage->getLanguageId();
                                     },
                                     $availableLanguages
@@ -154,7 +173,7 @@ class ReferencePageJavaScriptUtility
 
             foreach ($contentRecordTranslations as $contentRecordTranslation) {
                 $fields['sys_language_uid'] = $contentRecordTranslation['sys_language_uid'];
-                $fields['l10n_source'] = $originalLanguagecontentReferenceUid;
+                $fields['l10n_source'] = $originalLanguageContentReferenceUid;
                 $fields['records'] = 'tt_content_' . $contentRecordTranslation['uid'];
                 $fields['header'] = $contentRecordTranslation['header'];
                 $fields['hidden'] = $contentRecordTranslation['hidden'];

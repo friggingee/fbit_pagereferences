@@ -10,13 +10,18 @@ define(['jquery'], function ($) {
             '               <img src="/typo3/sysext/core/Resources/Public/Icons/T3Icons/spinner/spinner-circle-light.svg" width="48" height="48">' +
             '           </span>' +
             '       </span>' +
-            '       <div class="progress progress-striped progress-delete" style="width:80%;margin:15px auto">' +
-            '           <div class="progress-bar progress-bar-warning success"><span class="done"></span></div>' +
+            '       <div class="progress progress-striped progress-copy" style="width:80%;margin:15px auto">' +
+            '           <div class="progress-bar progress-bar-success success"><span class="done"></span></div>' +
             '           <div class="progress-bar progress-bar-danger failed"><span class="failed"></span></div>' +
             '           <span class="all"></span>' +
             '       </div>' +
-            '       <div class="progress progress-striped progress-copy" style="width:80%;margin:15px auto">' +
-            '           <div class="progress-bar progress-bar-success success"><span class="done"></span></div>' +
+            '       <div class="progress progress-striped progress-adjust" style="width:80%;margin:15px auto">' +
+            '           <div class="progress-bar progress-bar-info success"><span class="done"></span></div>' +
+            '           <div class="progress-bar progress-bar-danger failed"><span class="failed"></span></div>' +
+            '           <span class="all"></span>' +
+            '       </div>' +
+            '       <div class="progress progress-striped progress-delete" style="width:80%;margin:15px auto">' +
+            '           <div class="progress-bar progress-bar-warning success"><span class="done"></span></div>' +
             '           <div class="progress-bar progress-bar-danger failed"><span class="failed"></span></div>' +
             '           <span class="all"></span>' +
             '       </div>' +
@@ -55,27 +60,39 @@ define(['jquery'], function ($) {
                         // do nothing.
                     },
                     success: function (data, status, xhr) {
-                        var pageContentData = data['pageContentData'];
-                        var translatedContentUids = data['translatedContentUids'];
+                        var recordsToCopy = data['recordsToCopy'];
+                        var recordsToAdjust = data['recordsToAdjust'];
 
-                        var contentCount = pageContentData.length;
-                        var translationCount = translatedContentUids.length;
-                        var toDeleteCount = contentCount + translationCount;
-                        var toCopyCount = contentCount;
+                        var copyCount = recordsToCopy.length;
+                        var adjustCount = recordsToAdjust.length;
+                        var deleteCount = recordsToAdjust.length;
 
-                        PageReferences.initializeProgressBar('delete', toDeleteCount);
-                        PageReferences.initializeProgressBar('copy', toCopyCount);
+                        PageReferences.initializeProgressBar('copy', copyCount);
+                        PageReferences.initializeProgressBar('adjust', adjustCount);
+                        PageReferences.initializeProgressBar('delete', deleteCount);
 
+                        $.ajaxSetup({
+                            async: false
+                        });
                         $(document).ajaxError(function (event, jqxhr, settings, thrownError) {
                             if (settings.url.indexOf('paste') > -1) {
-                                PageReferences.updateProgressBar('copy', contentCount, false);
+                                PageReferences.updateProgressBar('copy', copyCount, false);
+                            } else if (settings.url.indexOf('adjust') > -1) {
+                                adjustCount--;
+                                PageReferences.updateProgressBar('adjust', adjustCount, false);
                             } else if (settings.url.indexOf('delete') > -1) {
-                                toCopyCount--;
-                                PageReferences.updateProgressBar('delete', toCopyCount, false);
+                                copyCount--;
+                                PageReferences.updateProgressBar('delete', copyCount, false);
                             }
                         });
 
-                        $.each(pageContentData, function (index, recordData) {
+                        // Three step process:
+                        //  1. copy original record.
+                        //      This creates the original record's copy as well as all translations.
+                        //  2. adjust copied record(s)
+                        //      This makes sure that sorting, hidden state and deleted state are respected
+                        //  3. delete previously existing content reference records
+                        $.each(recordsToCopy, function(index, originalRecordData) {
                             var parameters = {};
                             parameters['cmd'] = {};
                             parameters['data'] = {};
@@ -83,73 +100,77 @@ define(['jquery'], function ($) {
                             parameters['cmd']['tt_content'] = {};
                             parameters['data']['tt_content'] = {};
 
-                            parameters['cmd']['tt_content'][recordData.uid] = {
-                                delete: {
-                                    action: 'delete',
-                                    table: 'tt_content',
-                                    uid: recordData.uid
+                            parameters['cmd']['tt_content'][originalRecordData.uid] = {};
+                            parameters['cmd']['tt_content'][originalRecordData.uid] = {
+                                copy: {
+                                    target: parseInt(PageReferences.pageId),
+                                    parentAction: 'convertReferencesToCopies',
                                 }
                             };
-
                             require(['TYPO3/CMS/Backend/AjaxDataHandler'], function (DataHandler) {
                                 DataHandler.process(parameters).done(function (result) {
+                                    console.log('copy', originalRecordData.uid, parameters, result);
                                     if (!result.hasErrors) {
-                                        PageReferences.updateProgressBar('delete', toDeleteCount, true);
+                                        PageReferences.updateProgressBar('copy', copyCount, true);
 
-                                        $.each(recordData.records, function (index, copySourceUid) {
-                                            parameters['cmd']['tt_content'] = {};
-                                            parameters['cmd']['tt_content'][copySourceUid] = {};
-                                            parameters['cmd']['tt_content'][copySourceUid] = {
-                                                copy: {
-                                                    action: 'paste',
-                                                    target: parseInt(PageReferences.pageId),
-                                                    update: {
-                                                        colPos: parseInt(recordData.colPos),
-                                                        sys_language_uid: 0
-                                                    },
-                                                    parentAction: 'convertReferencesToCopies'
-                                                }
-                                            };
-                                            require(['TYPO3/CMS/Backend/AjaxDataHandler'], function (DataHandler) {
-                                                DataHandler.process(parameters).done(function (result) {
-                                                    if (!result.hasErrors) {
-                                                        PageReferences.updateProgressBar('copy', toCopyCount, true);
+                                        $.each(result.tce.copyMappingArray_merged.tt_content, function(originalRecordUid, copiedRecordNewUid) {
+                                            $.each(recordsToAdjust, function(index, adjustRecordData) {
+                                                if (parseInt(adjustRecordData.records) === parseInt(originalRecordUid)) {
+                                                    parameters['cmd']['tt_content'] = {};
+                                                    parameters['data']['tt_content'] = {};
+
+                                                    if (parseInt(adjustRecordData.deleted) === 1) {
+                                                        parameters['cmd']['tt_content'][copiedRecordNewUid] = {
+                                                            delete: {
+                                                                action: 'delete',
+                                                                table: 'tt_content',
+                                                                uid: copiedRecordNewUid
+                                                            }
+                                                        }
                                                     } else {
-                                                        PageReferences.updateProgressBar('copy', toCopyCount, false);
+                                                        parameters['data']['tt_content'][copiedRecordNewUid] = {
+                                                            sorting: adjustRecordData.sorting,
+                                                            hidden: adjustRecordData.hidden
+                                                        };
                                                     }
-                                                });
+
+                                                    require(['TYPO3/CMS/Backend/AjaxDataHandler'], function (DataHandler) {
+                                                        DataHandler.process(parameters).done(function (result) {
+                                                            console.log('adjusted: ' + (adjustRecordData.deleted ? 'deleted' : 'updated'), copiedRecordNewUid, parameters, result);
+                                                            if (!result.hasErrors) {
+                                                                PageReferences.updateProgressBar('adjust', adjustCount, true);
+
+                                                                parameters['cmd']['tt_content'] = {};
+                                                                parameters['data']['tt_content'] = {};
+
+                                                                parameters['cmd']['tt_content'][adjustRecordData.uid] = {
+                                                                    delete: {
+                                                                        action: 'delete',
+                                                                        table: 'tt_content',
+                                                                        uid: adjustRecordData.uid
+                                                                    }
+                                                                };
+
+                                                                require(['TYPO3/CMS/Backend/AjaxDataHandler'], function (DataHandler) {
+                                                                    DataHandler.process(parameters).done(function (result) {
+                                                                        console.log('delete', adjustRecordData.uid, parameters, result);
+                                                                        if (!result.hasErrors) {
+                                                                            PageReferences.updateProgressBar('delete', deleteCount, true);
+                                                                        } else {
+                                                                            PageReferences.updateProgressBar('delete', deleteCount, false);
+                                                                        }
+                                                                    });
+                                                                });
+                                                            } else {
+                                                                PageReferences.updateProgressBar('adjust', adjustCount, false);
+                                                            }
+                                                        });
+                                                    });
+                                                }
                                             });
                                         });
                                     } else {
-                                        PageReferences.updateProgressBar('delete', toDeleteCount, false);
-                                    }
-                                });
-                            });
-                        });
-
-
-                        $.each(translatedContentUids, function (index, uid) {
-                            var parameters = {};
-                            parameters['cmd'] = {};
-                            parameters['data'] = {};
-
-                            parameters['cmd']['tt_content'] = {};
-                            parameters['data']['tt_content'] = {};
-
-                            parameters['cmd']['tt_content'][uid] = {
-                                delete: {
-                                    action: 'delete',
-                                    table: 'tt_content',
-                                    uid: uid
-                                }
-                            };
-
-                            require(['TYPO3/CMS/Backend/AjaxDataHandler'], function (DataHandler) {
-                                DataHandler.process(parameters).done(function (result) {
-                                    if (!result.hasErrors) {
-                                        PageReferences.updateProgressBar('delete', toDeleteCount, true);
-                                    } else {
-                                        PageReferences.updateProgressBar('delete', toDeleteCount, false);
+                                        PageReferences.updateProgressBar('copy', copyCount, false);
                                     }
                                 });
                             });
@@ -160,8 +181,9 @@ define(['jquery'], function ($) {
         },
 
         disableLastReferenceSourcePageField: function () {
-            var lastReferenceSourcePageId = $('[name*=tx_fbit_pagereferences_reference_source_page]').val();
-            $('[name*=tx_fbit_pagereferences_reference_source_page]').remove();
+            var $lastReferenceSourcePageIdField = $('[name*=tx_fbit_pagereferences_reference_source_page]');
+            var lastReferenceSourcePageId = $lastReferenceSourcePageIdField.val();
+            $lastReferenceSourcePageIdField.remove();
             $('[data-formengine-input-name*=tx_fbit_pagereferences_reference_source_page]')
                 .attr('readonly', 'readonly').attr('disabled', 'disabled').val(lastReferenceSourcePageId);
         },
@@ -216,7 +238,10 @@ define(['jquery'], function ($) {
             );
 
             // reload if all done
-            if (PageReferences.progressCount.copy.success + PageReferences.progressCount.copy.failed >= allCount) {
+            if (PageReferences.progressCount.delete.success + PageReferences.progressCount.delete.failed >= allCount) {
+                $.ajaxSetup({
+                    async: true
+                });
                 frameElement.src = frameElement.src;
             }
         }

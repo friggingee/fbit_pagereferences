@@ -8,8 +8,8 @@ return [
         'path' => '/fbit_pagereferences/get_reference_page_content_data',
         'target' => \FBIT\PageReferences\Utility\ReferencePageJavaScriptUtility::class . '::getReferencePageContentData',
     ],
-    'page_tree_data' => [
-        'path' => '/page/tree/fetchData',
-        'target' => \FBIT\PageReferences\Overrides\TYPO3\CMS\Backend\Controller\Page\TreeController::class . '::fetchDataAction'
+    'record_process' => [
+        'path' => '/record/process',
+        'target' => \FBIT\PageReferences\Utility\ReferencePageJavaScriptUtility::class . '::callSimpleDataHandler'
     ],
 ];
