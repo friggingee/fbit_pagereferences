@@ -6,7 +6,6 @@ use FBIT\PageReferences\Utility\ReferencesUtility;
 use TYPO3\CMS\Backend\Controller\PageLayoutController;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Messaging\AbstractMessage;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class PagePropertiesReferencedFlashMessage
 {
@@ -15,7 +14,7 @@ class PagePropertiesReferencedFlashMessage
         $pageRecord = BackendUtility::getRecord('pages', $pageLayoutController->id);
 
         // If a reference page also references the properties of the source page:
-        if ((int) $pageRecord['tx_fbit_pagereferences_reference_page_properties'] === 1) {
+        if ((int)$pageRecord['tx_fbit_pagereferences_reference_page_properties'] === 1) {
             $pageLayoutController->moduleTemplate->addFlashMessage(
                 '(see also message below)',
                 'Page uses page properties from source page.',

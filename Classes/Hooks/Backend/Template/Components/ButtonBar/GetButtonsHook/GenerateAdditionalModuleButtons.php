@@ -6,7 +6,6 @@ use FBIT\PageReferences\Domain\Model\ReferencePage;
 use FBIT\PageReferences\Utility\ReferencesUtility;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -95,6 +94,29 @@ class GenerateAdditionalModuleButtons
         $buttons[ButtonBar::BUTTON_POSITION_LEFT][120][] = $this->generateButton($buttonConfig, $buttonBar);
     }
 
+    protected function generateButton(array $buttonConfig, ButtonBar $buttonBar)
+    {
+        $title = $buttonConfig['title'];
+        $class = 'fbitpagereferences-' . str_replace(' ', '', strtolower($title));
+
+        $button = $buttonBar->makeLinkButton()
+            ->setHref('#')
+            ->setDataAttributes([
+                'toggle' => 'tooltip',
+                'placement' => 'bottom',
+                'title' => $title
+            ])
+            ->setTitle($title)
+            ->setIcon($buttonConfig['icon'])
+            ->setClasses($class);
+
+        if ($buttonConfig['showLabelText']) {
+            $button->setShowLabelText($buttonConfig['showLabelText']);
+        }
+
+        return $button;
+    }
+
     protected function generateConvertReferencesToCopiesButton(ButtonBar $buttonBar, &$buttons)
     {
         $buttonConfig = [];
@@ -144,28 +166,5 @@ class GenerateAdditionalModuleButtons
                 'placement' => 'bottom',
                 'title' => $buttonConfig['title']
             ]);
-    }
-
-    protected function generateButton(array $buttonConfig, ButtonBar $buttonBar)
-    {
-        $title = $buttonConfig['title'];
-        $class = 'fbitpagereferences-' . str_replace(' ', '', strtolower($title));
-
-        $button = $buttonBar->makeLinkButton()
-            ->setHref('#')
-            ->setDataAttributes([
-                'toggle' => 'tooltip',
-                'placement' => 'bottom',
-                'title' => $title
-            ])
-            ->setTitle($title)
-            ->setIcon($buttonConfig['icon'])
-            ->setClasses($class);
-
-        if ($buttonConfig['showLabelText']) {
-            $button->setShowLabelText($buttonConfig['showLabelText']);
-        }
-
-        return $button;
     }
 }
