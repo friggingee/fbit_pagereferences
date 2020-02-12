@@ -7,6 +7,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\Generic\Query;
 
@@ -138,7 +140,7 @@ class ReferencePageJavaScriptUtility
                             implode(
                                 ',',
                                 array_map(
-                                    function(SiteLanguage $siteLanguage) {
+                                    function (SiteLanguage $siteLanguage) {
                                         return $siteLanguage->getLanguageId();
                                     },
                                     $availableLanguages

@@ -16,10 +16,8 @@ namespace FBIT\PageReferences\Overrides\TYPO3\CMS\Core\LinkHandling;
  * The TYPO3 project - inspiring people to share!
  */
 
-use FBIT\PageReferences\Domain\Model\ReferencePage;
 use FBIT\PageReferences\Utility\ReferencesUtility;
 use TYPO3\CMS\Core\Context\Context;
-use TYPO3\CMS\Core\Context\LanguageAspect;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;

@@ -30,42 +30,6 @@ class ReferencesUtility
         return $hasReferences;
     }
 
-    static public function getReferences(int $referenceSourcePageUid, int $languageId = 0)
-    {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
-        $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
-        $referencePages = $queryBuilder->select('uid')
-            ->from('pages')
-            ->where(
-                $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->like('content_from_pid', '"%' . $referenceSourcePageUid . '%"'),
-                    $queryBuilder->expr()->eq('sys_language_uid', $languageId)
-                )
-            )
-            ->execute()
-            ->fetchAll();
-
-        return $referencePages;
-    }
-
-    static public function getRewriteTargets(int $referenceSourcePageUid, int $languageId = 0)
-    {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
-        $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
-        $referencePages = $queryBuilder->select('uid')
-            ->from('pages')
-            ->where(
-                $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->like('tx_fbit_pagereferences_reference_source_page', '"%' . $referenceSourcePageUid . '%"'),
-                    $queryBuilder->expr()->eq('sys_language_uid', $languageId)
-                )
-            )
-            ->execute()
-            ->fetchAll();
-
-        return $referencePages;
-    }
-
     /**
      * @param int $referenceSourcePageUid
      * @param Site $site
@@ -89,6 +53,24 @@ class ReferencesUtility
         return $referenceInSite;
     }
 
+    static public function getReferences(int $referenceSourcePageUid, int $languageId = 0)
+    {
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
+        $referencePages = $queryBuilder->select('uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->andX(
+                    $queryBuilder->expr()->like('content_from_pid', '"%' . $referenceSourcePageUid . '%"'),
+                    $queryBuilder->expr()->eq('sys_language_uid', $languageId)
+                )
+            )
+            ->execute()
+            ->fetchAll();
+
+        return $referencePages;
+    }
+
     /**
      * @param int $referenceSourcePageUid
      * @param Site $site
@@ -110,5 +92,23 @@ class ReferencesUtility
         }
 
         return $referenceInSite;
+    }
+
+    static public function getRewriteTargets(int $referenceSourcePageUid, int $languageId = 0)
+    {
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
+        $referencePages = $queryBuilder->select('uid')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->andX(
+                    $queryBuilder->expr()->like('tx_fbit_pagereferences_reference_source_page', '"%' . $referenceSourcePageUid . '%"'),
+                    $queryBuilder->expr()->eq('sys_language_uid', $languageId)
+                )
+            )
+            ->execute()
+            ->fetchAll();
+
+        return $referencePages;
     }
 }

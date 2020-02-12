@@ -103,16 +103,6 @@ class UpdateReferencePageProperties
         }
     }
 
-    public function processDatamap_postProcessFieldArray(string $status, string $table, $id, array &$fieldArray, DataHandler $dataHandler) {
-        if ($table === 'pages') {
-            if (!empty($fieldArray['content_from_pid'])) {
-                if (BackendUtility::getRecord('pages', $id)['doktype'] === ReferencePage::DOKTYPE) {
-                    $fieldArray['tx_fbit_pagereferences_reference_source_page'] = $fieldArray['content_from_pid'];
-                }
-            }
-        }
-    }
-
     /**
      * @param array $incomingFieldArray
      * @param int $pageUid
@@ -280,33 +270,18 @@ class UpdateReferencePageProperties
     }
 
     /**
-     * @param array $pageData
+     * @param array $dataMap
+     * @param array $cmdMap
+     * @return object|DataHandler
      */
-    protected function deleteRelationsCreatedOnLastBackupCreation(array $pageData)
+    protected function processThroughDataHandler($dataMap = [], $cmdMap = [])
     {
-        $createdInlineRelations = $pageData['createdInlineRelations'];
+        $temporaryDataHandler = GeneralUtility::makeInstance(DataHandler::class);
+        $temporaryDataHandler->start($dataMap, $cmdMap);
+        $temporaryDataHandler->process_datamap();
+        $temporaryDataHandler->process_cmdmap();
 
-        $relationDeleteCmdMap = [];
-
-        foreach ($createdInlineRelations as $tableName => $idMap) {
-            $createdRelationsIds = array_values($idMap);
-
-            $relationDeleteCmdMap[$tableName] = [];
-
-            foreach ($createdRelationsIds as $createdRelationId) {
-                if (!RecordUtility::isTranslation($createdRelationId, $tableName)) {
-                    $relationDeleteCmdMap[$tableName][$createdRelationId] = [
-                        'delete' => [
-                            'action' => 'delete',
-                            'table' => $tableName,
-                            'uid' => $createdRelationId
-                        ]
-                    ];
-
-                    $this->processThroughDataHandler([], $relationDeleteCmdMap);
-                }
-            }
-        }
+        return $temporaryDataHandler;
     }
 
     /**
@@ -348,17 +323,43 @@ class UpdateReferencePageProperties
     }
 
     /**
-     * @param array $dataMap
-     * @param array $cmdMap
-     * @return object|DataHandler
+     * @param array $pageData
      */
-    protected function processThroughDataHandler($dataMap = [], $cmdMap = [])
+    protected function deleteRelationsCreatedOnLastBackupCreation(array $pageData)
     {
-        $temporaryDataHandler = GeneralUtility::makeInstance(DataHandler::class);
-        $temporaryDataHandler->start($dataMap, $cmdMap);
-        $temporaryDataHandler->process_datamap();
-        $temporaryDataHandler->process_cmdmap();
+        $createdInlineRelations = $pageData['createdInlineRelations'];
 
-        return $temporaryDataHandler;
+        $relationDeleteCmdMap = [];
+
+        foreach ($createdInlineRelations as $tableName => $idMap) {
+            $createdRelationsIds = array_values($idMap);
+
+            $relationDeleteCmdMap[$tableName] = [];
+
+            foreach ($createdRelationsIds as $createdRelationId) {
+                if (!RecordUtility::isTranslation($createdRelationId, $tableName)) {
+                    $relationDeleteCmdMap[$tableName][$createdRelationId] = [
+                        'delete' => [
+                            'action' => 'delete',
+                            'table' => $tableName,
+                            'uid' => $createdRelationId
+                        ]
+                    ];
+
+                    $this->processThroughDataHandler([], $relationDeleteCmdMap);
+                }
+            }
+        }
+    }
+
+    public function processDatamap_postProcessFieldArray(string $status, string $table, $id, array &$fieldArray, DataHandler $dataHandler)
+    {
+        if ($table === 'pages') {
+            if (!empty($fieldArray['content_from_pid'])) {
+                if (BackendUtility::getRecord('pages', $id)['doktype'] === ReferencePage::DOKTYPE) {
+                    $fieldArray['tx_fbit_pagereferences_reference_source_page'] = $fieldArray['content_from_pid'];
+                }
+            }
+        }
     }
 }
