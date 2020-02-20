@@ -20,7 +20,7 @@ class ReferencesUtility
             ->from('pages')
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->like('content_from_pid', '"%' . $referenceSourcePageUid . '%"'),
+                    $queryBuilder->expr()->in('content_from_pid', $referenceSourcePageUid),
                     $queryBuilder->expr()->eq('sys_language_uid', $languageId)
                 )
             )
@@ -61,7 +61,7 @@ class ReferencesUtility
             ->from('pages')
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->like('content_from_pid', '"%' . $referenceSourcePageUid . '%"'),
+                    $queryBuilder->expr()->in('content_from_pid', $referenceSourcePageUid),
                     $queryBuilder->expr()->eq('sys_language_uid', $languageId)
                 )
             )
@@ -102,7 +102,7 @@ class ReferencesUtility
             ->from('pages')
             ->where(
                 $queryBuilder->expr()->andX(
-                    $queryBuilder->expr()->like('tx_fbit_pagereferences_reference_source_page', '"%' . $referenceSourcePageUid . '%"'),
+                    $queryBuilder->expr()->in('tx_fbit_pagereferences_reference_source_page', $referenceSourcePageUid),
                     $queryBuilder->expr()->eq('sys_language_uid', $languageId)
                 )
             )
