@@ -110,6 +110,11 @@ class UpdateReferencePageProperties
      */
     protected function doUpdateReferencePageProperties(array $incomingFieldArray, int $pageUid)
     {
+        // reset flags because this hook might be called multiple times but will not be reinitialized each time before being called
+        $this->updateReferencePagesOnSourcePageSave = false;
+        $this->updateReferencePageOnEnablingPropertiesReferencing = false;
+        $this->resetReferencePageOnDisablingPropertiesReferencing = false;
+
         // when clicking "Save and update references" on a reference source page
         $this->updateReferencePagesOnSourcePageSave = GeneralUtility::_POST('_savedokandupdatereferences') && count($incomingFieldArray);
 
