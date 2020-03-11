@@ -331,22 +331,24 @@ class UpdateReferencePageProperties
 
         $relationDeleteCmdMap = [];
 
-        foreach ($createdInlineRelations as $tableName => $idMap) {
-            $createdRelationsIds = array_values($idMap);
+        if (!empty($createdInlineRelations)) {
+            foreach ($createdInlineRelations as $tableName => $idMap) {
+                $createdRelationsIds = array_values($idMap);
 
-            $relationDeleteCmdMap[$tableName] = [];
+                $relationDeleteCmdMap[$tableName] = [];
 
-            foreach ($createdRelationsIds as $createdRelationId) {
-                if (!RecordUtility::isTranslation($createdRelationId, $tableName)) {
-                    $relationDeleteCmdMap[$tableName][$createdRelationId] = [
-                        'delete' => [
-                            'action' => 'delete',
-                            'table' => $tableName,
-                            'uid' => $createdRelationId
-                        ]
-                    ];
+                foreach ($createdRelationsIds as $createdRelationId) {
+                    if (!RecordUtility::isTranslation($createdRelationId, $tableName)) {
+                        $relationDeleteCmdMap[$tableName][$createdRelationId] = [
+                            'delete' => [
+                                'action' => 'delete',
+                                'table' => $tableName,
+                                'uid' => $createdRelationId
+                            ]
+                        ];
 
-                    $this->processThroughDataHandler([], $relationDeleteCmdMap);
+                        $this->processThroughDataHandler([], $relationDeleteCmdMap);
+                    }
                 }
             }
         }
