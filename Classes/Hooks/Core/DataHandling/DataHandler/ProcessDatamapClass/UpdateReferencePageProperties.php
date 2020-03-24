@@ -3,10 +3,12 @@
 namespace FBIT\PageReferences\Hooks\Core\DataHandling\DataHandler\ProcessDatamapClass;
 
 use FBIT\PageReferences\Domain\Model\ReferencePage;
+use FBIT\PageReferences\Helper\CategoryHelper;
 use FBIT\PageReferences\Utility\RecordUtility;
 use FBIT\PageReferences\Utility\ReferencesUtility;
 use TYPO3\CMS\Backend\Controller\FormSlugAjaxController;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Category\CategoryRegistry;
 use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Http\ServerRequest;
@@ -210,7 +212,16 @@ class UpdateReferencePageProperties
     protected function resolveInlineRelations(array $recordData, int $recordPid, $createMissingRelations = false)
     {
         foreach ($recordData as $fieldName => $value) {
-            $recordData[$fieldName] = $this->resolveInlineField($fieldName, $recordPid, '', $createMissingRelations) ?: $value;
+            if (CategoryRegistry::getInstance()->isRegistered('pages', $fieldName)) {
+                // current field is sys_category reference
+                $recordData[$fieldName] = CategoryHelper::getInstance()->getPagesCategories(
+                    $recordPid,
+                    $fieldName,
+                    true
+                );
+            } else {
+                $recordData[$fieldName] = $this->resolveInlineField($fieldName, $recordPid, '', $createMissingRelations) ?: $value;
+            }
         }
 
         return $recordData;
