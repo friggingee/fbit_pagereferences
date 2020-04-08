@@ -99,7 +99,7 @@ class UpdateReferencePageProperties
                     $incomingFieldArray['tx_fbit_pagereferences_original_page_properties'] = '';
 
                     $this->deleteRelationsCreatedOnLastBackupCreation($incomingFieldArray);
-                    $incomingFieldArray = $this->resolveInlineRelations($incomingFieldArray, $this->fullCurrentPageData['uid'], false);
+                    $incomingFieldArray = $this->resolveRelations($incomingFieldArray, $this->fullCurrentPageData['uid'], false);
                 }
             }
         }
@@ -179,13 +179,13 @@ class UpdateReferencePageProperties
                 },
                 ARRAY_FILTER_USE_KEY
             );
-            $originalPageData = $this->resolveInlineRelations($originalPageData, $referenceTargetPageData['uid'], false);
+            $originalPageData = $this->resolveRelations($originalPageData, $referenceTargetPageData['uid'], false);
         }
 
         // Process inline relations after saving the backup.
         // If we attempt this before, we will be seeing relations in the backup which only just have been created from
         // the reference source page.
-        $pageData = $this->resolveInlineRelations($pageData, $referenceSourcePageData['uid'], true);
+        $pageData = $this->resolveRelations($pageData, $referenceSourcePageData['uid'], true);
 
         // Add created inline relations to backup array. This way we know which ones to delete when restoring the backup.
         $originalPageData['createdInlineRelations'] = array_merge(
@@ -209,7 +209,7 @@ class UpdateReferencePageProperties
      * @param bool $createMissingRelations
      * @return array
      */
-    protected function resolveInlineRelations(array $recordData, int $recordPid, $createMissingRelations = false)
+    protected function resolveRelations(array $recordData, int $recordPid, $createMissingRelations = false)
     {
         foreach ($recordData as $fieldName => $value) {
             $recordData[$fieldName] = $this->resolveRelationField($fieldName, $recordPid, '', $createMissingRelations) ?: $value;
