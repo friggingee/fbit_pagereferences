@@ -101,14 +101,6 @@ call_user_func(
 
         // allow to change the icon if the page is a proper reference
         $GLOBALS['TCA']['pages']['ctrl']['typeicon_classes']['userFunc'] = \FBIT\PageReferences\UserFuncs\TCA\Pages\Ctrl\TypeiconClasses\UserFunc\ReferencedPage::class . '->overrideIconIfPageIsFullReference';
-
-        foreach ($GLOBALS['TCA']['pages']['columns'] as $fieldName => $fieldConfig) {
-            if (!in_array($fieldName, \FBIT\PageReferences\Domain\Model\ReferencePage::PROTECTED_PROPERTIES)) {
-                // lock referenced fields for editing if "Reference page properties" is set
-                $GLOBALS['TCA']['pages']['types'][$dokType]['columnsOverrides'][$fieldName]['displayCond'] =
-                    'FIELD:tx_fbit_pagereferences_reference_page_properties:=:0';
-            }
-        }
     },
     'fbit_pagereferences',
     'pages'

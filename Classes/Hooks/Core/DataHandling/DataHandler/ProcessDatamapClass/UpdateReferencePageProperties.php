@@ -212,16 +212,7 @@ class UpdateReferencePageProperties
     protected function resolveInlineRelations(array $recordData, int $recordPid, $createMissingRelations = false)
     {
         foreach ($recordData as $fieldName => $value) {
-            if (CategoryRegistry::getInstance()->isRegistered('pages', $fieldName)) {
-                // current field is sys_category reference
-                $recordData[$fieldName] = CategoryHelper::getInstance()->getPagesCategories(
-                    $recordPid,
-                    $fieldName,
-                    true
-                );
-            } else {
-                $recordData[$fieldName] = $this->resolveInlineField($fieldName, $recordPid, '', $createMissingRelations) ?: $value;
-            }
+            $recordData[$fieldName] = $this->resolveRelationField($fieldName, $recordPid, '', $createMissingRelations) ?: $value;
         }
 
         return $recordData;
@@ -234,13 +225,14 @@ class UpdateReferencePageProperties
      * @param bool $createMissingRelations
      * @return string|null
      */
-    protected function resolveInlineField(string $fieldName, int $recordPid, $fieldKey = '', $createMissingRelations = false)
+    protected function resolveRelationField(string $fieldName, int $recordPid, $fieldKey = '', $createMissingRelations = false)
     {
         $fieldValue = null;
 
         $fieldName = $fieldKey ?: $fieldName;
 
-        if ($GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['type'] === 'inline') {
+        switch ($GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['type']) {
+            case 'inline':
             // clean instance per field
             $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
             // resolve inline relations, fetch their IDs
@@ -280,6 +272,21 @@ class UpdateReferencePageProperties
             } else {
                 $fieldValue = implode(',', $relationHandler->getValueArray());
             }
+                break;
+            case 'select':
+                if (CategoryRegistry::getInstance()->isRegistered('pages', $fieldName)) {
+                    // current field is sys_category reference
+                    $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
+                    $relationHandler->start(
+                        '',
+                        'sys_category',
+                        $GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['MM'],
+                        $recordPid,
+                        'pages',
+                        $GLOBALS['TCA']['pages']['columns'][$fieldName]['config']
+                    );
+                    $fieldValue = $relationHandler->getValueArray();
+                }
         }
 
         return $fieldValue;
