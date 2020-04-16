@@ -3,7 +3,6 @@
 namespace FBIT\PageReferences\Hooks\Core\DataHandling\DataHandler\ProcessDatamapClass;
 
 use FBIT\PageReferences\Domain\Model\ReferencePage;
-use FBIT\PageReferences\Helper\CategoryHelper;
 use FBIT\PageReferences\Utility\RecordUtility;
 use FBIT\PageReferences\Utility\ReferencesUtility;
 use TYPO3\CMS\Backend\Controller\FormSlugAjaxController;
@@ -99,7 +98,7 @@ class UpdateReferencePageProperties
                     $incomingFieldArray['tx_fbit_pagereferences_original_page_properties'] = '';
 
                     $this->deleteRelationsCreatedOnLastBackupCreation($incomingFieldArray);
-                    $incomingFieldArray = $this->resolveRelations($incomingFieldArray, $this->fullCurrentPageData['uid'], false);
+                    $incomingFieldArray = $this->resolveRelations($incomingFieldArray, $this->fullCurrentPageData['uid'], false, true);
                 }
             }
         }
@@ -207,12 +206,13 @@ class UpdateReferencePageProperties
      * @param array $recordData
      * @param int $recordPid
      * @param bool $createMissingRelations
+     * @param bool $modeReset Are we in reset mode?
      * @return array
      */
-    protected function resolveRelations(array $recordData, int $recordPid, $createMissingRelations = false)
+    protected function resolveRelations(array $recordData, int $recordPid, $createMissingRelations = false, bool $modeReset = false)
     {
         foreach ($recordData as $fieldName => $value) {
-            $recordData[$fieldName] = $this->resolveRelationField($fieldName, $recordPid, '', $createMissingRelations) ?: $value;
+            $recordData[$fieldName] = $this->resolveRelationField($fieldName, $recordPid, '', $createMissingRelations, $modeReset) ?: $value;
         }
 
         return $recordData;
@@ -223,9 +223,10 @@ class UpdateReferencePageProperties
      * @param int $recordPid
      * @param string $fieldKey
      * @param bool $createMissingRelations
+     * @param bool $modeReset Are we in reset mode? Categories (stored as CSIs or arrays) are handled as conventional fields and ignored then
      * @return string|null
      */
-    protected function resolveRelationField(string $fieldName, int $recordPid, $fieldKey = '', $createMissingRelations = false)
+    protected function resolveRelationField(string $fieldName, int $recordPid, $fieldKey = '', $createMissingRelations = false, bool $modeReset = false)
     {
         $fieldValue = null;
 
@@ -274,7 +275,7 @@ class UpdateReferencePageProperties
             }
                 break;
             case 'select':
-                if (CategoryRegistry::getInstance()->isRegistered('pages', $fieldName)) {
+                if (!$modeReset && CategoryRegistry::getInstance()->isRegistered('pages', $fieldName)) {
                     // current field is sys_category reference
                     $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
                     $relationHandler->start(
