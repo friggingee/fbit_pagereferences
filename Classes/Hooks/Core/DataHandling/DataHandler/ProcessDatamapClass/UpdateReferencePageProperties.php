@@ -7,6 +7,7 @@ use FBIT\PageReferences\Utility\RecordUtility;
 use FBIT\PageReferences\Utility\ReferencesUtility;
 use TYPO3\CMS\Backend\Controller\FormSlugAjaxController;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Category\CategoryRegistry;
 use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Http\ServerRequest;
@@ -97,7 +98,7 @@ class UpdateReferencePageProperties
                     $incomingFieldArray['tx_fbit_pagereferences_original_page_properties'] = '';
 
                     $this->deleteRelationsCreatedOnLastBackupCreation($incomingFieldArray);
-                    $incomingFieldArray = $this->resolveInlineRelations($incomingFieldArray, $this->fullCurrentPageData['uid'], false);
+                    $incomingFieldArray = $this->resolveRelations($incomingFieldArray, $this->fullCurrentPageData['uid'], false, true);
                 }
             }
         }
@@ -177,13 +178,13 @@ class UpdateReferencePageProperties
                 },
                 ARRAY_FILTER_USE_KEY
             );
-            $originalPageData = $this->resolveInlineRelations($originalPageData, $referenceTargetPageData['uid'], false);
+            $originalPageData = $this->resolveRelations($originalPageData, $referenceTargetPageData['uid'], false);
         }
 
         // Process inline relations after saving the backup.
         // If we attempt this before, we will be seeing relations in the backup which only just have been created from
         // the reference source page.
-        $pageData = $this->resolveInlineRelations($pageData, $referenceSourcePageData['uid'], true);
+        $pageData = $this->resolveRelations($pageData, $referenceSourcePageData['uid'], true);
 
         // Add created inline relations to backup array. This way we know which ones to delete when restoring the backup.
         $originalPageData['createdInlineRelations'] = array_merge(
@@ -205,12 +206,13 @@ class UpdateReferencePageProperties
      * @param array $recordData
      * @param int $recordPid
      * @param bool $createMissingRelations
+     * @param bool $modeReset Are we in reset mode?
      * @return array
      */
-    protected function resolveInlineRelations(array $recordData, int $recordPid, $createMissingRelations = false)
+    protected function resolveRelations(array $recordData, int $recordPid, $createMissingRelations = false, bool $modeReset = false)
     {
         foreach ($recordData as $fieldName => $value) {
-            $recordData[$fieldName] = $this->resolveInlineField($fieldName, $recordPid, '', $createMissingRelations) ?: $value;
+            $recordData[$fieldName] = $this->resolveRelationField($fieldName, $recordPid, '', $createMissingRelations, $modeReset) ?: $value;
         }
 
         return $recordData;
@@ -221,15 +223,17 @@ class UpdateReferencePageProperties
      * @param int $recordPid
      * @param string $fieldKey
      * @param bool $createMissingRelations
+     * @param bool $modeReset Are we in reset mode? Categories (stored as CSIs or arrays) are handled as conventional fields and ignored then
      * @return string|null
      */
-    protected function resolveInlineField(string $fieldName, int $recordPid, $fieldKey = '', $createMissingRelations = false)
+    protected function resolveRelationField(string $fieldName, int $recordPid, $fieldKey = '', $createMissingRelations = false, bool $modeReset = false)
     {
         $fieldValue = null;
 
         $fieldName = $fieldKey ?: $fieldName;
 
-        if ($GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['type'] === 'inline') {
+        switch ($GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['type']) {
+            case 'inline':
             // clean instance per field
             $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
             // resolve inline relations, fetch their IDs
@@ -269,6 +273,21 @@ class UpdateReferencePageProperties
             } else {
                 $fieldValue = implode(',', $relationHandler->getValueArray());
             }
+                break;
+            case 'select':
+                if (!$modeReset && CategoryRegistry::getInstance()->isRegistered('pages', $fieldName)) {
+                    // current field is sys_category reference
+                    $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
+                    $relationHandler->start(
+                        '',
+                        'sys_category',
+                        $GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['MM'],
+                        $recordPid,
+                        'pages',
+                        $GLOBALS['TCA']['pages']['columns'][$fieldName]['config']
+                    );
+                    $fieldValue = $relationHandler->getValueArray();
+                }
         }
 
         return $fieldValue;
