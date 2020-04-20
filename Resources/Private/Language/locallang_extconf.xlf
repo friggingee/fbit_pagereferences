@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.0">
+    <file source-language="en" datatype="plaintext" original="messages" date="2019-11-19T11:48:44Z"
+          product-name="fbit_pagereferences">
+        <header/>
+        <body>
+            <trans-unit id="features.typoLinkCodecServiceOverrideEnabled">
+                <source>Override TypoLinkCodecService in order to enable link rewriting in non-LinkHandler contexts?</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

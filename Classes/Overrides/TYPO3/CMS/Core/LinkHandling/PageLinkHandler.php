@@ -32,6 +32,7 @@ class PageLinkHandler extends \TYPO3\CMS\Core\LinkHandling\PageLinkHandler
      *
      * @param array $data
      * @return array
+     * @throws \TYPO3\CMS\Core\Context\Exception\AspectNotFoundException
      * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
      */
     public function resolveHandlerData(array $data): array

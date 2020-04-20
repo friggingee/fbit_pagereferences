@@ -23,5 +23,14 @@ call_user_func(
         // Frontend features
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['linkHandler']['page'] =
             \FBIT\PageReferences\Overrides\TYPO3\CMS\Core\LinkHandling\PageLinkHandler::class;
+
+        $extensionConfiguration = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
+            \TYPO3\CMS\Core\Configuration\ExtensionConfiguration::class
+        )->get('fbit_pagereferences');
+
+        if ((int)$extensionConfiguration['typoLinkCodecServiceOverrideEnabled'] === 1) {
+            $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects'][\TYPO3\CMS\Frontend\Service\TypoLinkCodecService::class]['className'] =
+                \FBIT\PageReferences\Overrides\TYPO3\CMS\Frontend\Service\TypoLinkCodecService::class;
+        }
     }
 );

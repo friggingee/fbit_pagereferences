@@ -1,0 +1,3 @@
+# cat=features//010; type=boolean; label=LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_extconf.xlf:features.typoLinkCodecServiceOverrideEnabled
+typoLinkCodecServiceOverrideEnabled = 1
+
