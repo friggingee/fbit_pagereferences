@@ -44,7 +44,8 @@ class ReferencesUtility
         $allReferences = ReferencesUtility::getReferences($referenceSourcePageUid, $languageId);
 
         foreach ($allReferences as $reference) {
-            if ($siteFinder->getSiteByPageId($reference['uid'])->getIdentifier() === $site->getIdentifier()) {
+            $pageIdInDefaultLanguage = (int)($languageId > 0 ? $reference['l10n_parent'] : $reference['uid']);
+            if ($siteFinder->getSiteByPageId($pageIdInDefaultLanguage)->getIdentifier() === $site->getIdentifier()) {
                 $referenceInSite = $reference;
                 break;
             }
@@ -57,7 +58,7 @@ class ReferencesUtility
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
         $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
-        $referencePages = $queryBuilder->select('uid')
+        $referencePages = $queryBuilder->select('uid', 'l10n_parent')
             ->from('pages')
             ->where(
                 $queryBuilder->expr()->andX(
