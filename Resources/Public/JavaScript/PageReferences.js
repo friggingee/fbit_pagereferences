@@ -219,6 +219,29 @@ define(['jquery'], function ($) {
             if (PageReferences.progressCount.copy.success + PageReferences.progressCount.copy.failed >= allCount) {
                 frameElement.src = frameElement.src;
             }
+        },
+
+        enableFlashMessageControls: function () {
+            $('.typo3-messages .alert-title').each(function (index, item) {
+                if (item.innerText === 'Page properties are also used on pages:') {
+                    $(item).parent().find('.alert-message').hide('fast');
+                    item.outerHTML = '<h4 class="alert-title">' +
+                        '<a href="#" class="fbit-accordion-title">' +
+                        item.innerText +
+                        '</a>' +
+                        '</h4>';
+                }
+            });
+
+            $('.fbit-accordion-title').click(function (event) {
+                var affectedMessageContainer = $(event.target).parents('.media-body').find('.alert-message');
+
+                if (affectedMessageContainer.is(':visible')) {
+                    affectedMessageContainer.hide('fast');
+                } else {
+                    affectedMessageContainer.show('fast');
+                }
+            });
         }
     };
 
@@ -229,6 +252,7 @@ define(['jquery'], function ($) {
 
             this.enableCreateContentReferencesButton();
             this.enableConvertReferencesToCopiesButton();
+            this.enableFlashMessageControls();
         }
         if ($('#EditDocumentController').length > 0) {
             var tableData = $('[data-table]').data();
