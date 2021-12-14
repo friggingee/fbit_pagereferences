@@ -28,8 +28,8 @@ class GenerateAdditionalModuleButtons
     public function generateButtons(ButtonBar $buttonBar, &$buttons)
     {
         switch (GeneralUtility::_GET('route')) {
-            case '/web/layout/':
-            case '/web/list/':
+            case '/module/web/layout':
+            case '/module/web/list':
                 $currentPage = BackendUtility::getRecord('pages', GeneralUtility::_GET('id'));
 
                 // only show the buttons on pages referencing another page
@@ -44,7 +44,7 @@ class GenerateAdditionalModuleButtons
                     $this->generateConvertReferencesToCopiesButton($buttonBar, $buttons);
                 }
                 break;
-            case '/record/edit':
+            case '/module/record/edit':
                 $requestParameters = GeneralUtility::_GET();
                 if (is_array($requestParameters['edit']) && array_key_first($requestParameters['edit']) === 'pages') {
                     $currentPage = BackendUtility::getRecord('pages', array_key_first(GeneralUtility::_GET('edit')['pages']));
