@@ -246,7 +246,7 @@ define(['jquery'], function ($) {
     };
 
     PageReferences.init = function () {
-        if ($('#PageLayoutController').length > 0 || $('.dblistForm').length > 0) {
+        if ($('#PageLayoutController').length > 0 || $('form[name=dblistForm]').length > 0) {
             var tableData = $('[data-table]').data();
             this.pageId = tableData['uid'];
 
