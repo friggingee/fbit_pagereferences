@@ -8,6 +8,8 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Fluid\View\StandaloneView;
+use TYPO3\CMS\Fluid\ViewHelpers\Be\InfoboxViewHelper;
 
 class PagePropertiesReferencedFlashMessage
 {
@@ -18,15 +20,22 @@ class PagePropertiesReferencedFlashMessage
      */
     public function addPagePropertiesReferencedFlashMessage(array &$params, PageLayoutController &$pageLayoutController)
     {
+        $content = '';
+
         $pageRecord = BackendUtility::getRecord('pages', $pageLayoutController->id);
 
         // If a reference page also references the properties of the source page:
         if ((int)$pageRecord['tx_fbit_pagereferences_reference_page_properties'] === 1) {
-            $pageLayoutController->moduleTemplate->addFlashMessage(
-                '(see also message below)',
-                'Page uses page properties from source page.',
-                AbstractMessage::INFO
-            );
+            $view = GeneralUtility::makeInstance(StandaloneView::class);
+            $view->setTemplatePathAndFilename(GeneralUtility::getFileAbsFileName('EXT:backend/Resources/Private/Templates/InfoBox.html'));
+
+            $view->assignMultiple([
+                'title' => 'Page uses page properties from source page.',
+                'message' => '(see also message above)',
+                'state' => InfoboxViewHelper::STATE_INFO
+            ]);
+
+            $content .= $view->render();
         }
 
         // If properties of a regular page is referenced somewhere else:
@@ -62,15 +71,24 @@ class PagePropertiesReferencedFlashMessage
                     }
                     $messageBody .= implode(', ', $messageBodyData);
 
-                    $messageBody .= ' // ';
+                    if (count($messageBodyData) > 1) {
+                        $messageBody .= ' // ';
+                    }
                 }
 
-                $pageLayoutController->moduleTemplate->addFlashMessage(
-                    $messageBody,
-                    'Page properties are also used on pages:',
-                    AbstractMessage::INFO
-                );
+                $view = GeneralUtility::makeInstance(StandaloneView::class);
+                $view->setTemplatePathAndFilename(GeneralUtility::getFileAbsFileName('EXT:backend/Resources/Private/Templates/InfoBox.html'));
+
+                $view->assignMultiple([
+                    'title' => 'Page properties are also used on pages:',
+                    'message' => $messageBody,
+                    'state' => InfoboxViewHelper::STATE_INFO
+                ]);
+
+                $content .= $view->render();
             }
         }
+
+        return $content;
     }
 }
