@@ -44,7 +44,7 @@ class GenerateAdditionalModuleButtons
                     $this->generateConvertReferencesToCopiesButton($buttonBar, $buttons);
                 }
                 break;
-            case '/module/record/edit':
+            case '/record/edit':
                 $requestParameters = GeneralUtility::_GET();
                 if (is_array($requestParameters['edit']) && array_key_first($requestParameters['edit']) === 'pages') {
                     $currentPage = BackendUtility::getRecord('pages', array_key_first(GeneralUtility::_GET('edit')['pages']));
