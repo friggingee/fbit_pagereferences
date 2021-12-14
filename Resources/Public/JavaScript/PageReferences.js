@@ -7,7 +7,7 @@ define(['jquery'], function ($) {
         uiBlockTemplate: '   <div id="t3js-ui-block" class="ui-block fbitpagereferences-convertreferencestocopies-progress">' +
             '       <span class="t3js-icon icon icon-size-large icon-state-default icon-spinner-circle-light icon-spin" data-identifier="spinner-circle-light">' +
             '           <span class="icon-markup">' +
-            '               <img src="/typo3/sysext/core/Resources/Public/Icons/T3Icons/spinner/spinner-circle-light.svg" width="48" height="48">' +
+            '               <img src="/typo3/sysext/core/Resources/Public/Icons/T3Icons/svgs/spinner/spinner-circle-light.svg" width="48" height="48">' +
             '           </span>' +
             '       </span>' +
             '       <div class="progress progress-striped progress-delete" style="width:80%;margin:15px auto">' +
