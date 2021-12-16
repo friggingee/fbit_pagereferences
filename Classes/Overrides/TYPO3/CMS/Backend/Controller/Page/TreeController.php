@@ -5,6 +5,7 @@ namespace FBIT\PageReferences\Overrides\TYPO3\CMS\Backend\Controller\Page;
 use FBIT\PageReferences\Domain\Model\ReferencePage;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
+use TYPO3\CMS\Core\Type\Bitmask\Permission;
 
 /**
  * Controller providing data to the page tree
@@ -24,14 +25,21 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
      */
     protected function pagesToFlatArray(array $page, int $entryPoint, int $depth = 0, array $inheritedData = []): array
     {
+        $backendUser = $this->getBackendUser();
         $pageId = (int)$page['uid'];
         if (in_array($pageId, $this->hiddenRecords, true)) {
+            return [];
+        }
+        if ($pageId === 0 && !$backendUser->isAdmin()) {
             return [];
         }
 
         $stopPageTree = !empty($page['php_tree_stop']) && $depth > 0;
         $identifier = $entryPoint . '_' . $pageId;
-        $expanded = !empty($page['expanded']) || (isset($this->expandedState[$identifier]) && $this->expandedState[$identifier]);
+        $expanded = !empty($page['expanded'])
+            || (isset($this->expandedState[$identifier]) && $this->expandedState[$identifier])
+            || $this->expandAllNodes;
+
         $backgroundColor = !empty($this->backgroundColors[$pageId]) ? $this->backgroundColors[$pageId] : ($inheritedData['backgroundColor'] ?? '');
 
         $suffix = '';
@@ -82,34 +90,72 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
         }
 
         $items = [];
-        $items[] = [
+        $item = [
             // Used to track if the tree item is collapsed or not
             'stateIdentifier' => $identifier,
             'identifier' => $pageId,
             'depth' => $depth,
             'tip' => htmlspecialchars($tooltip),
-            'hasChildren' => !empty($page['_children']),
             'icon' => $icon->getIdentifier(),
             'name' => $visibleText,
             'nameSourceField' => $nameSourceField,
-            'alias' => htmlspecialchars($page['alias'] ?? ''),
-            'prefix' => htmlspecialchars($prefix),
-            'suffix' => htmlspecialchars($suffix),
-            'locked' => is_array($lockInfo),
-            'overlayIcon' => $icon->getOverlayIcon() ? $icon->getOverlayIcon()->getIdentifier() : '',
-            'selectable' => true,
-            'expanded' => (bool)$expanded,
-            'checked' => false,
-            'backgroundColor' => htmlspecialchars($backgroundColor),
-            'stopPageTree' => $stopPageTree,
-            'class' => $this->resolvePageCssClassNames($page),
-            'readableRootline' => $depth === 0 && $this->showMountPathAboveMounts ? $this->getMountPointPath($pageId) : '',
-            'isMountPoint' => $depth === 0,
             'mountPoint' => $entryPoint,
             'workspaceId' => !empty($page['t3ver_oid']) ? $page['t3ver_oid'] : $pageId,
+            'siblingsCount' => $page['siblingsCount'] ?? 1,
+            'siblingsPosition' => $page['siblingsPosition'] ?? 1,
+            'allowDelete' => $backendUser->doesUserHaveAccess($page, Permission::PAGE_DELETE),
+            'allowEdit' => $backendUser->doesUserHaveAccess($page, Permission::PAGE_EDIT)
+                && $backendUser->check('tables_modify', 'pages')
+                && $backendUser->checkLanguageAccess(0)
         ];
-        if (!$stopPageTree) {
+
+        if (!empty($page['_children']) || $this->getPageTreeRepository()->hasChildren($pageId)) {
+            $item['hasChildren'] = true;
+            if ($depth >= $this->levelsToFetch) {
+                $page = $this->getPageTreeRepository()->getTreeLevels($page, 1);
+            }
+        }
+        if (!empty($prefix)) {
+            $item['prefix'] = htmlspecialchars($prefix);
+        }
+        if (!empty($suffix)) {
+            $item['suffix'] = htmlspecialchars($suffix);
+        }
+        if (is_array($lockInfo)) {
+            $item['locked'] = true;
+        }
+        if ($icon->getOverlayIcon()) {
+            $item['overlayIcon'] = $icon->getOverlayIcon()->getIdentifier();
+        }
+        if ($expanded && is_array($page['_children']) && !empty($page['_children'])) {
+            $item['expanded'] = $expanded;
+        }
+        if ($backgroundColor) {
+            $item['backgroundColor'] = htmlspecialchars($backgroundColor);
+        }
+        if ($stopPageTree) {
+            $item['stopPageTree'] = $stopPageTree;
+        }
+        $class = $this->resolvePageCssClassNames($page);
+        if (!empty($class)) {
+            $item['class'] = $class;
+        }
+        if ($depth === 0) {
+            $item['isMountPoint'] = true;
+
+            if ($this->showMountPathAboveMounts) {
+                $item['readableRootline'] = $this->getMountPointPath($pageId);
+            }
+        }
+
+        $items[] = $item;
+        if (!$stopPageTree && is_array($page['_children']) && !empty($page['_children']) && ($depth < $this->levelsToFetch || $expanded)) {
+            $siblingsCount = count($page['_children']);
+            $siblingsPosition = 0;
+            $items[key($items)]['loaded'] = true;
             foreach ($page['_children'] as $child) {
+                $child['siblingsCount'] = $siblingsCount;
+                $child['siblingsPosition'] = ++$siblingsPosition;
                 $items = array_merge($items, $this->pagesToFlatArray($child, $entryPoint, $depth + 1, ['backgroundColor' => $backgroundColor]));
             }
         }
