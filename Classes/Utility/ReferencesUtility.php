@@ -2,6 +2,7 @@
 
 namespace FBIT\PageReferences\Utility;
 
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -45,7 +46,8 @@ class ReferencesUtility
 
         foreach ($allReferences as $reference) {
             $pageIdInDefaultLanguage = (int)($languageId > 0 ? $reference['l10n_parent'] : $reference['uid']);
-            if ($siteFinder->getSiteByPageId($pageIdInDefaultLanguage)->getIdentifier() === $site->getIdentifier()) {
+            if (BackendUtility::getRecord('pages', $pageIdInDefaultLanguage)  !== null
+                && $siteFinder->getSiteByPageId($pageIdInDefaultLanguage)->getIdentifier() === $site->getIdentifier()) {
                 $referenceInSite = $reference;
                 break;
             }
