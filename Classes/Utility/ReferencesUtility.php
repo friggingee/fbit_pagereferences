@@ -5,13 +5,14 @@ namespace FBIT\PageReferences\Utility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class ReferencesUtility
 {
-    static public function hasReferences(int $referenceSourcePageUid, int $languageId = 0)
+    static public function hasReferences(int $referenceSourcePageUid, int $languageId = 0): bool
     {
         $hasReferences = false;
 
@@ -34,8 +35,8 @@ class ReferencesUtility
     /**
      * @param int $referenceSourcePageUid
      * @param Site $site
+     * @param int $languageId
      * @return mixed|null
-     * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
      */
     static public function getReferenceInSite(int $referenceSourcePageUid, Site $site, int $languageId = 0)
     {
@@ -46,10 +47,16 @@ class ReferencesUtility
 
         foreach ($allReferences as $reference) {
             $pageIdInDefaultLanguage = (int)($languageId > 0 ? $reference['l10n_parent'] : $reference['uid']);
-            if (BackendUtility::getRecord('pages', $pageIdInDefaultLanguage)  !== null
-                && $siteFinder->getSiteByPageId($pageIdInDefaultLanguage)->getIdentifier() === $site->getIdentifier()) {
-                $referenceInSite = $reference;
-                break;
+            if (BackendUtility::getRecord('pages', $pageIdInDefaultLanguage)  !== null) {
+                try {
+                    if ($siteFinder->getSiteByPageId($pageIdInDefaultLanguage)->getIdentifier() === $site->getIdentifier()) {
+                        $referenceInSite = $reference;
+                        break;
+                    }
+                } catch (SiteNotFoundException $exception) {
+                    // At this point the exception means that the rootline of the page in question is not connected to
+                    // the site root in which case we ignore the exception but also the page.
+                }
             }
         }
 
@@ -78,7 +85,6 @@ class ReferencesUtility
      * @param int $referenceSourcePageUid
      * @param Site $site
      * @return mixed|null
-     * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
      */
     static public function getRewriteTargetInSite(int $referenceSourcePageUid, Site $site, int $languageId = 0)
     {
@@ -88,9 +94,16 @@ class ReferencesUtility
         $allReferences = ReferencesUtility::getRewriteTargets($referenceSourcePageUid, $languageId);
 
         foreach ($allReferences as $reference) {
-            if ($siteFinder->getSiteByPageId($reference['uid'])->getIdentifier() === $site->getIdentifier()) {
-                $referenceInSite = $reference;
-                break;
+            if (BackendUtility::getRecord('pages', $reference['uid']) !== null) {
+                try {
+                    if ($siteFinder->getSiteByPageId($reference['uid'])->getIdentifier() === $site->getIdentifier()) {
+                        $referenceInSite = $reference;
+                        break;
+                    }
+                } catch (SiteNotFoundException $exception) {
+                    // At this point the exception means that the rootline of the page in question is not connected to
+                    // the site root in which case we ignore the exception but also the page.
+                }
             }
         }
 
