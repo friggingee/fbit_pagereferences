@@ -19,10 +19,10 @@ $EM_CONF[$_EXTKEY] = array(
     'clearCacheOnLoad' => 0,
     'lockType' => '',
     'author_company' => 'feinberg.it',
-    'version' => '1.6.2',
+    'version' => '1.7.0',
     'constraints' => array(
         'depends' => array(
-            'typo3' => '9.5.11-9.5.99',
+            'typo3' => '9.5.11-11.99.99',
         ),
         'conflicts' => array(),
         'suggests' => array(),
