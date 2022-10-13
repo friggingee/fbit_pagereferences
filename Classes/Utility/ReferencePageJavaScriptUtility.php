@@ -2,11 +2,14 @@
 
 namespace FBIT\PageReferences\Utility;
 
+use Doctrine\DBAL\DBALException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Http\Response;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -73,11 +76,10 @@ class ReferencePageJavaScriptUtility
 
     /**
      * @param ServerRequestInterface $request
-     * @param ResponseInterface $response
      * @return ResponseInterface
-     * @throws \TYPO3\CMS\Core\Exception\SiteNotFoundException
+     * @throws SiteNotFoundException|DBALException
      */
-    public function createContentReferences(ServerRequestInterface $request, ResponseInterface $response)
+    public function createContentReferences(ServerRequestInterface $request)
     {
         $requestParams = $request->getQueryParams();
 
@@ -170,6 +172,8 @@ class ReferencePageJavaScriptUtility
         }
 
         $data['success'] = true;
+
+        $response = GeneralUtility::makeInstance(Response::class);
 
         $response->getBody()->write(json_encode($data));
 
