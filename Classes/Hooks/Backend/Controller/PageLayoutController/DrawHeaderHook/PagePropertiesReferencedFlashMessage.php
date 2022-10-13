@@ -22,7 +22,7 @@ class PagePropertiesReferencedFlashMessage
 
         // If a reference page also references the properties of the source page:
         if ((int)$pageRecord['tx_fbit_pagereferences_reference_page_properties'] === 1) {
-            $pageLayoutController->moduleTemplate->addFlashMessage(
+            $pageLayoutController->getModuleTemplate()->addFlashMessage(
                 '(see also message below)',
                 'Page uses page properties from source page.',
                 AbstractMessage::INFO
@@ -65,8 +65,8 @@ class PagePropertiesReferencedFlashMessage
                     $messageBody .= ' // ';
                 }
 
-                $pageLayoutController->moduleTemplate->addFlashMessage(
-                    $messageBody,
+                $pageLayoutController->getModuleTemplate()->addFlashMessage(
+                    rtrim($messageBody, ' /'),
                     'Page properties are also used on pages:',
                     AbstractMessage::INFO
                 );
