@@ -241,8 +241,12 @@ class UpdateReferencePageProperties
                 // clean instance per field
                 $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
                 // resolve inline relations, fetch their IDs
-                $relationHandler->readForeignField(
+                $relationHandler->start(
+                    '',
+                    'pages',
+                    '',
                     $recordPid,
+                    '',
                     $GLOBALS['TCA']['pages']['columns'][$fieldName]['config']
                 );
 
