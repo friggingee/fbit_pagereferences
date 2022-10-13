@@ -29,7 +29,7 @@ call_user_func(
                 // add all page standard fields and tabs to the new page type
                 'types' => [
                     (string)$dokType => [
-                        'showitem' => $GLOBALS['TCA'][$table]['types'][\TYPO3\CMS\Frontend\Page\PageRepository::DOKTYPE_DEFAULT]['showitem']
+                        'showitem' => $GLOBALS['TCA'][$table]['types'][\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_DEFAULT]['showitem']
                     ]
                 ]
             ]
