@@ -110,7 +110,7 @@ class GenerateAdditionalModuleButtons
             ->setIcon($buttonConfig['icon'])
             ->setClasses($class);
 
-        if ($buttonConfig['showLabelText']) {
+        if (isset($buttonConfig['showLabelText'])) {
             $button->setShowLabelText($buttonConfig['showLabelText']);
         }
 

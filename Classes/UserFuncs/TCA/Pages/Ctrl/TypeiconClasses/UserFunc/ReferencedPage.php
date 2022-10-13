@@ -8,7 +8,7 @@ class ReferencedPage
 {
     public function overrideIconIfPageIsFullReference(&$params, &$iconFactoryNullReference)
     {
-        if ($params['row']['doktype'] === ReferencePage::DOKTYPE) {
+        if (isset($params['row']['doktype']) && $params['row']['doktype'] === ReferencePage::DOKTYPE) {
             return 'apps-pagetree-page-reference';
         }
     }

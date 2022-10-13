@@ -188,7 +188,7 @@ class UpdateReferencePageProperties
 
         // Add created inline relations to backup array. This way we know which ones to delete when restoring the backup.
         $originalPageData['createdInlineRelations'] = array_merge(
-            $originalPageData['createdInlineRelations'] ?: [],
+            $originalPageData['createdInlineRelations'] ?? [],
             $this->createdInlineRelations
         );
         $pageData['tx_fbit_pagereferences_original_page_properties'] = serialize($originalPageData);
@@ -231,6 +231,10 @@ class UpdateReferencePageProperties
         $fieldValue = null;
 
         $fieldName = $fieldKey ?: $fieldName;
+
+        if (!isset($GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['type'])) {
+            return $fieldValue;
+        }
 
         switch ($GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['type']) {
             case 'inline':
