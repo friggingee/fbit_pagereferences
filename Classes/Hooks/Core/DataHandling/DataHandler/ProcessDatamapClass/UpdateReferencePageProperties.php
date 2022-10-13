@@ -238,45 +238,45 @@ class UpdateReferencePageProperties
 
         switch ($GLOBALS['TCA']['pages']['columns'][$fieldName]['config']['type']) {
             case 'inline':
-            // clean instance per field
-            $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
-            // resolve inline relations, fetch their IDs
-            $relationHandler->readForeignField(
-                $recordPid,
-                $GLOBALS['TCA']['pages']['columns'][$fieldName]['config']
-            );
+                // clean instance per field
+                $relationHandler = GeneralUtility::makeInstance(RelationHandler::class);
+                // resolve inline relations, fetch their IDs
+                $relationHandler->readForeignField(
+                    $recordPid,
+                    $GLOBALS['TCA']['pages']['columns'][$fieldName]['config']
+                );
 
-            $relatedRecords = $relationHandler->getValueArray(true);
+                $relatedRecords = $relationHandler->getValueArray(true);
 
-            if ($relatedRecords && $createMissingRelations) {
-                $relatedRecordsType = substr($relatedRecords[0], 0, strrpos($relatedRecords[0], '_'));
+                if ($relatedRecords && $createMissingRelations) {
+                    $relatedRecordsType = substr($relatedRecords[0], 0, strrpos($relatedRecords[0], '_'));
 
-                $relationCopyCmdMap = [];
-                $relationCopyCmdMap[$relatedRecordsType] = [];
+                    $relationCopyCmdMap = [];
+                    $relationCopyCmdMap[$relatedRecordsType] = [];
 
-                foreach ($relatedRecords as $recordDataString) {
-                    $relatedRecordSourceId = substr($recordDataString, strrpos($recordDataString, '_') + 1, strlen($recordDataString));
+                    foreach ($relatedRecords as $recordDataString) {
+                        $relatedRecordSourceId = substr($recordDataString, strrpos($recordDataString, '_') + 1, strlen($recordDataString));
 
-                    if (!RecordUtility::isTranslation($relatedRecordSourceId, $relatedRecordsType)) {
-                        $relationCopyCmdMap[$relatedRecordsType][$relatedRecordSourceId] = [
-                            'copy' => [
-                                'action' => 'paste',
-                                'target' => $this->fullCurrentPageData['uid'],
-                                'update' => [
-                                    'uid_foreign' => $this->fullCurrentPageData['uid']
+                        if (!RecordUtility::isTranslation($relatedRecordSourceId, $relatedRecordsType)) {
+                            $relationCopyCmdMap[$relatedRecordsType][$relatedRecordSourceId] = [
+                                'copy' => [
+                                    'action' => 'paste',
+                                    'target' => $this->fullCurrentPageData['uid'],
+                                    'update' => [
+                                        'uid_foreign' => $this->fullCurrentPageData['uid']
+                                    ],
                                 ],
-                            ],
-                        ];
+                            ];
+                        }
                     }
+
+                    $temporaryDataHandler = $this->processThroughDataHandler([], $relationCopyCmdMap);
+
+                    $this->createdInlineRelations = array_merge_recursive($this->createdInlineRelations, $temporaryDataHandler->copyMappingArray_merged);
+                    $fieldValue = implode(',', $temporaryDataHandler->copyMappingArray_merged[$relatedRecordsType]);
+                } else {
+                    $fieldValue = implode(',', $relationHandler->getValueArray());
                 }
-
-                $temporaryDataHandler = $this->processThroughDataHandler([], $relationCopyCmdMap);
-
-                $this->createdInlineRelations = array_merge_recursive($this->createdInlineRelations, $temporaryDataHandler->copyMappingArray_merged);
-                $fieldValue = implode(',', $temporaryDataHandler->copyMappingArray_merged[$relatedRecordsType]);
-            } else {
-                $fieldValue = implode(',', $relationHandler->getValueArray());
-            }
                 break;
             case 'select':
                 if (!$modeReset && CategoryRegistry::getInstance()->isRegistered('pages', $fieldName)) {
