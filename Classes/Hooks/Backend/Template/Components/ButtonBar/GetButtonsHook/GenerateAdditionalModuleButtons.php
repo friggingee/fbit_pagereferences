@@ -35,10 +35,14 @@ class GenerateAdditionalModuleButtons
                 // only show the buttons on pages referencing another page
                 if (
                     (
-                        $currentPage['content_from_pid'] > 0
+                        isset($currentPage['content_from_pid'])
+                        && $currentPage['content_from_pid'] > 0
                         && $currentPage['doktype'] === ReferencePage::DOKTYPE
                     )
-                    || $currentPage['tx_fbit_pagereferences_reference_source_page'] > 0
+                    || (
+                        isset($currentPage['tx_fbit_pagereferences_reference_source_page'])
+                        && $currentPage['tx_fbit_pagereferences_reference_source_page'] > 0
+                    )
                 ) {
                     $this->generateCreateContentReferencesButton($buttonBar, $buttons);
                     $this->generateConvertReferencesToCopiesButton($buttonBar, $buttons);

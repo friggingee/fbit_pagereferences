@@ -15,7 +15,9 @@ class DontHideRecordsWhenConvertingContentReferencesToCopies
     {
         if (isset($dataHandler->cmdmap['tt_content'])
             && is_array($dataHandler->cmdmap['tt_content'])
+            && isset($dataHandler->cmdmap['tt_content']['copy'])
             && is_array(reset($dataHandler->cmdmap['tt_content'])['copy'])
+            && isset($dataHandler->cmdmap['tt_content']['copy']['parentAction'])
             && !empty(reset($dataHandler->cmdmap['tt_content'])['copy']['parentAction'])
             && reset($dataHandler->cmdmap['tt_content'])['copy']['parentAction'] === 'convertReferencesToCopies'
         ) {
