@@ -9,7 +9,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
-use TYPO3\CMS\Core\Http\Response;
+use TYPO3\CMS\Core\Http\JsonResponse;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -19,7 +19,7 @@ class ReferencePageJavaScriptUtility
 {
     protected $contentSelectFields = ['uid', 'colPos', 'sorting', 'sys_language_uid', 'l10n_source', 'header', 'hidden', 'deleted', 'CType'];
 
-    public function getReferencePageContentData(ServerRequestInterface $request, ResponseInterface $response)
+    public function getReferencePageContentData(ServerRequestInterface $request)
     {
         $requestParams = $request->getQueryParams();
 
@@ -68,6 +68,8 @@ class ReferencePageJavaScriptUtility
             },
             $translatedPageContentData
         );
+
+        $response = GeneralUtility::makeInstance(JsonResponse::class);
 
         $response->getBody()->write(json_encode($data));
 
@@ -173,7 +175,7 @@ class ReferencePageJavaScriptUtility
 
         $data['success'] = true;
 
-        $response = GeneralUtility::makeInstance(Response::class);
+        $response = GeneralUtility::makeInstance(JsonResponse::class);
 
         $response->getBody()->write(json_encode($data));
 
