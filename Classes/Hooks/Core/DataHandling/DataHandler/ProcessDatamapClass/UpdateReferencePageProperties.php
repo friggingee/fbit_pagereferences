@@ -12,6 +12,7 @@ use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
 class UpdateReferencePageProperties
 {
@@ -388,9 +389,12 @@ class UpdateReferencePageProperties
 
     public function processDatamap_postProcessFieldArray(string $status, string $table, $id, array &$fieldArray, DataHandler $dataHandler)
     {
-        if ($table === 'pages') {
+        if ($table === 'pages' && MathUtility::canBeInterpretedAsInteger($id)) {
             if (!empty($fieldArray['content_from_pid'])) {
                 if (BackendUtility::getRecord('pages', $id)['doktype'] === ReferencePage::DOKTYPE) {
+                    // Save the last source page ID to a field which won't be reset automatically.
+                    // This allows us to rewrite links even if a reference page has been set to a different doktype
+                    // later on.
                     $fieldArray['tx_fbit_pagereferences_reference_source_page'] = $fieldArray['content_from_pid'];
                 }
             }
