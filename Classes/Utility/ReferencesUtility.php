@@ -84,6 +84,7 @@ class ReferencesUtility
     /**
      * @param int $referenceSourcePageUid
      * @param Site $site
+     * @param int $languageId
      * @return mixed|null
      */
     static public function getRewriteTargetInSite(int $referenceSourcePageUid, Site $site, int $languageId = 0)

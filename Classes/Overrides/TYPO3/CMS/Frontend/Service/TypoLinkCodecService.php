@@ -42,7 +42,9 @@ class TypoLinkCodecService extends \TYPO3\CMS\Frontend\Service\TypoLinkCodecServ
             $parts = '';
         }
 
-        if ($GLOBALS['TSFE'] instanceof TypoScriptFrontendController && $GLOBALS['TSFE']->page['tx_fbit_pagereferences_rewrite_links'] === 1) {
+        if ($GLOBALS['TSFE'] instanceof TypoScriptFrontendController
+            && $GLOBALS['TSFE']->page['tx_fbit_pagereferences_rewrite_links'] === 1
+        ) {
             preg_match('/(t3:\/\/page\?uid=)?(\d+)/', $parts[0], $linkTargetPageUid);
 
             if ((int)end($linkTargetPageUid) > 0) {

@@ -6,6 +6,9 @@ class ReferencePage
 {
     const DOKTYPE = 111;
 
+    // As soon as you get to 32 millions users and have to change this number, let me know, I'll do it for free.
+    const CRUSER_ID = 324874737;
+
     const PROTECTED_PROPERTIES = [
         'uid',
         'pid',

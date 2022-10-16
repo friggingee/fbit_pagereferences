@@ -12,6 +12,7 @@ use TYPO3\CMS\Core\Database\RelationHandler;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
 class UpdateReferencePageProperties
 {
@@ -261,23 +262,46 @@ class UpdateReferencePageProperties
                     foreach ($relatedRecords as $recordDataString) {
                         $relatedRecordSourceId = substr($recordDataString, strrpos($recordDataString, '_') + 1, strlen($recordDataString));
 
-                        if (!RecordUtility::isTranslation($relatedRecordSourceId, $relatedRecordsType)) {
-                            $relationCopyCmdMap[$relatedRecordsType][$relatedRecordSourceId] = [
-                                'copy' => [
-                                    'action' => 'paste',
-                                    'target' => $this->fullCurrentPageData['uid'],
-                                    'update' => [
-                                        'uid_foreign' => $this->fullCurrentPageData['uid']
-                                    ],
+                        $relationCopyCmdMap[$relatedRecordsType][$relatedRecordSourceId] = [
+                            'copy' => [
+                                'action' => 'paste',
+                                'target' => $this->fullCurrentPageData['uid'],
+                                'update' => [
+                                    'uid_foreign' => $this->fullCurrentPageData['uid']
                                 ],
-                            ];
-                        }
+                            ],
+                        ];
                     }
 
                     $temporaryDataHandler = $this->processThroughDataHandler([], $relationCopyCmdMap);
 
-                    $this->createdInlineRelations = array_merge_recursive($this->createdInlineRelations, $temporaryDataHandler->copyMappingArray_merged);
-                    $fieldValue = implode(',', $temporaryDataHandler->copyMappingArray_merged[$relatedRecordsType]);
+                    $newlyCreatedInlineRelations = $temporaryDataHandler->copyMappingArray_merged;
+
+                    // DataHandler creates copies of localizations of any record without any option to switch this off.
+                    // We're dealing with each language separately so we need to clean up afterwards.
+                    foreach ($newlyCreatedInlineRelations as $tableName => $recordData) {
+                        foreach ($recordData as $originalUid => $newUid) {
+                            $recordTypeLanguageField = $GLOBALS['TCA'][$tableName]['ctrl']['languageField'];
+
+                            if ($this->fullReferenceSourcePageData['sys_language_uid'] !== BackendUtility::getRecord($tableName, $newUid)[$recordTypeLanguageField]) {
+                                // To not litter the database with dead records, we use a hard delete for any translations created
+                                // by DataHandler which do not correspond to the current reference source page language.
+                                RecordUtility::hardDeleteSuperfluousTranslation($tableName, $newUid);
+                                unset($newlyCreatedInlineRelations[$tableName][$originalUid]);
+                            } else {
+                                // Mark records in the same language with our special cruser_id so we know who created them.
+                                RecordUtility::updateRecordLowlevel($tableName, $newUid, ['cruser_id' => ReferencePage::CRUSER_ID]);
+                                if ($this->fullReferenceSourcePageData['sys_language_uid'] > 0) {
+                                    // Soft delete records possibly automatically created when this translation was created.
+                                    // Soft delete is used to be able to restore them when resetting the reference page properties.
+                                    RecordUtility::softDeleteSuperfluousTranslation($fieldName, $this->fullCurrentPageData['uid'], $newUid);
+                                }
+                            }
+                        }
+                    }
+
+                    $this->createdInlineRelations = array_merge_recursive($this->createdInlineRelations, $newlyCreatedInlineRelations);
+                    $fieldValue = implode(',', $newlyCreatedInlineRelations[$relatedRecordsType]);
                 } else {
                     $fieldValue = implode(',', $relationHandler->getValueArray());
                 }
@@ -370,7 +394,7 @@ class UpdateReferencePageProperties
                 $relationDeleteCmdMap[$tableName] = [];
 
                 foreach ($createdRelationsIds as $createdRelationId) {
-                    if (!RecordUtility::isTranslation($createdRelationId, $tableName)) {
+                    if (!RecordUtility::isTranslation($tableName, $createdRelationId)) {
                         $relationDeleteCmdMap[$tableName][$createdRelationId] = [
                             'delete' => [
                                 'action' => 'delete',
@@ -388,12 +412,19 @@ class UpdateReferencePageProperties
 
     public function processDatamap_postProcessFieldArray(string $status, string $table, $id, array &$fieldArray, DataHandler $dataHandler)
     {
-        if ($table === 'pages') {
+        if ($table === 'pages' && MathUtility::canBeInterpretedAsInteger($id)) {
             if (!empty($fieldArray['content_from_pid'])) {
                 if (BackendUtility::getRecord('pages', $id)['doktype'] === ReferencePage::DOKTYPE) {
+                    // Save the last source page ID to a field which won't be reset automatically.
+                    // This allows us to rewrite links even if a reference page has been set to a different doktype
+                    // later on.
                     $fieldArray['tx_fbit_pagereferences_reference_source_page'] = $fieldArray['content_from_pid'];
                 }
             }
         }
+    }
+
+    public function processDatamap_afterAllOperations(DataHandler $dataHandler) {
+        $foo = 'bar';
     }
 }
