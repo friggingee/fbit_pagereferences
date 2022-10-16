@@ -37,7 +37,10 @@ class PageLinkHandler extends \TYPO3\CMS\Core\LinkHandling\PageLinkHandler
      */
     public function resolveHandlerData(array $data): array
     {
-        if ($GLOBALS['TSFE'] instanceof TypoScriptFrontendController && $GLOBALS['TSFE']->page['tx_fbit_pagereferences_rewrite_links'] === 1) {
+        if (isset($GLOBALS['TSFE'])
+            && $GLOBALS['TSFE'] instanceof TypoScriptFrontendController
+            && $GLOBALS['TSFE']->page['tx_fbit_pagereferences_rewrite_links'] === 1
+        ) {
             $linkTargetPageUid = (int)$data['uid'];
 
             $currentSite = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId((int)$GLOBALS['TSFE']->id);
