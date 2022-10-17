@@ -4,6 +4,17 @@ call_user_func(
     function ($extKey, $table) {
         $dokType = \FBIT\PageReferences\Domain\Model\ReferencePage::DOKTYPE;
 
+        // Add new page type:
+        $GLOBALS['PAGES_TYPES'][$dokType] = [
+            'type' => 'web',
+            'allowedTables' => '*',
+        ];
+
+        // Add the new doktype to the list of types available from the new page menu at the top of the page tree
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addUserTSConfig(
+            'options.pageTree.doktypesToShowInNewPageDragArea := addToList(' . $dokType . ')'
+        );
+
         // Add new page type as possible select item:
         \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTcaSelectItem(
             $table,

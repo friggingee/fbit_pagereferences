@@ -9,5 +9,10 @@
         "psr-4": {
             "FBIT\\PageReferences\\": "Classes"
         }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "fbit_pagereferences"
+        }
     }
 }
