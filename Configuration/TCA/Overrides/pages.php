@@ -102,13 +102,33 @@ call_user_func(
         ];
 
         // then add new fields to form
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', '--div--;LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.references', $typelist, 'after:subtitle');
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'content_from_pid', $typelist, 'after:--div--;LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.references');
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'tx_fbit_pagereferences_reference_page_properties', $typelist, 'after:content_from_pid');
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'tx_fbit_pagereferences_rewrite_links', $typelist, 'after:tx_fbit_pagereferences_reference_page_properties');
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
+            'pages',
+            implode(',',
+                [
+                    '--div--;LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.references',
+                    'content_from_pid',
+                    'tx_fbit_pagereferences_reference_page_properties',
+                    'tx_fbit_pagereferences_rewrite_links',
+                ]
+            ),
+            $typelist,
+            'after:subtitle'
+        );
+
         // also show on default pages
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'tx_fbit_pagereferences_rewrite_links', '1', 'after:subtitle');
-        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes('pages', 'tx_fbit_pagereferences_reference_source_page', '1', 'after:tx_fbit_pagereferences_rewrite_links');
+        \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addToAllTCAtypes(
+            'pages',
+            implode(',',
+                [
+                    '--div--;LLL:EXT:fbit_pagereferences/Resources/Private/Language/locallang_tca.xlf:pages.references',
+                    'tx_fbit_pagereferences_rewrite_links',
+                    'tx_fbit_pagereferences_reference_source_page',
+                ]
+            ),
+            (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_DEFAULT,
+            'after:subtitle'
+        );
 
         // allow to change the icon if the page is a proper reference
         $GLOBALS['TCA']['pages']['ctrl']['typeicon_classes']['userFunc'] = \FBIT\PageReferences\UserFuncs\TCA\Pages\Ctrl\TypeiconClasses\UserFunc\ReferencedPage::class . '->overrideIconIfPageIsFullReference';
