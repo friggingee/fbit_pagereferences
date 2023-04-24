@@ -109,10 +109,10 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
                 && $backendUser->checkLanguageAccess(0),
         ];
 
-        if (!empty($page['_children']) || $this->getPageTreeRepository->hasChildren($pageId)) {
+        if (!empty($page['_children']) || $this->getPageTreeRepository()->hasChildren($pageId)) {
             $item['hasChildren'] = true;
             if ($depth >= $this->levelsToFetch) {
-                $page = $this->getPageTreeRepository->getTreeLevels($page, 1);
+                $page = $this->getPageTreeRepository()->getTreeLevels($page, 1);
             }
         }
         if (!empty($prefix)) {
