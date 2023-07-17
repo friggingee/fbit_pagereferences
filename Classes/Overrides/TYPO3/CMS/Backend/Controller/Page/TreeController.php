@@ -3,6 +3,7 @@
 namespace FBIT\PageReferences\Overrides\TYPO3\CMS\Backend\Controller\Page;
 
 use FBIT\PageReferences\Domain\Model\ReferencePage;
+use TYPO3\CMS\Backend\Tree\Repository\PageTreeRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
@@ -107,10 +108,10 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
             'allowEdit' => $this->userHasAccessToModifyPagesAndToDefaultLanguage && $backendUser->doesUserHaveAccess($page, Permission::PAGE_EDIT),
         ];
 
-        if (!empty($page['_children']) || $this->pageTreeRepository->hasChildren($pageId)) {
+        if (!empty($page['_children']) || $this->getPageTreeRepository()->hasChildren($pageId)) {
             $item['hasChildren'] = true;
             if ($depth >= $this->levelsToFetch) {
-                $page = $this->pageTreeRepository->getTreeLevels($page, 1);
+                $page = $this->getPageTreeRepository()->getTreeLevels($page, 1);
             }
         }
         if (!empty($prefix)) {
@@ -158,5 +159,14 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
             }
         }
         return $items;
+    }
+
+    protected function getPageTreeRepository(): PageTreeRepository
+    {
+        if (method_exists(\TYPO3\CMS\Backend\Controller\Page\TreeController::class, 'getPageTreeRepository')) {
+            return parent::getPageTreeRepository();
+        }
+
+        return $this->pageTreeRepository;
     }
 }
