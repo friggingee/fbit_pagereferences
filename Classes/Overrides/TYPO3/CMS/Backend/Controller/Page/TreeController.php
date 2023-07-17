@@ -107,10 +107,10 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
             'allowEdit' => $this->userHasAccessToModifyPagesAndToDefaultLanguage && $backendUser->doesUserHaveAccess($page, Permission::PAGE_EDIT),
         ];
 
-        if (!empty($page['_children']) || $this->getPageTreeRepository->hasChildren($pageId)) {
+        if (!empty($page['_children']) || $this->pageTreeRepository->hasChildren($pageId)) {
             $item['hasChildren'] = true;
             if ($depth >= $this->levelsToFetch) {
-                $page = $this->getPageTreeRepository->getTreeLevels($page, 1);
+                $page = $this->pageTreeRepository->getTreeLevels($page, 1);
             }
         }
         if (!empty($prefix)) {
