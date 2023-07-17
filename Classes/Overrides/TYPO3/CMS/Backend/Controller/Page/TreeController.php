@@ -3,6 +3,7 @@
 namespace FBIT\PageReferences\Overrides\TYPO3\CMS\Backend\Controller\Page;
 
 use FBIT\PageReferences\Domain\Model\ReferencePage;
+use TYPO3\CMS\Backend\Tree\Repository\PageTreeRepository;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
@@ -104,9 +105,7 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
             'siblingsCount' => $page['siblingsCount'] ?? 1,
             'siblingsPosition' => $page['siblingsPosition'] ?? 1,
             'allowDelete' => $backendUser->doesUserHaveAccess($page, Permission::PAGE_DELETE),
-            'allowEdit' => $backendUser->doesUserHaveAccess($page, Permission::PAGE_EDIT)
-                && $backendUser->check('tables_modify', 'pages')
-                && $backendUser->checkLanguageAccess(0),
+            'allowEdit' => $this->userHasAccessToModifyPagesAndToDefaultLanguage && $backendUser->doesUserHaveAccess($page, Permission::PAGE_EDIT),
         ];
 
         if (!empty($page['_children']) || $this->getPageTreeRepository()->hasChildren($pageId)) {
@@ -128,13 +127,13 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
             $item['overlayIcon'] = $icon->getOverlayIcon()->getIdentifier();
         }
         if ($expanded && is_array($page['_children']) && !empty($page['_children'])) {
-            $item['expanded'] = $expanded;
+            $item['expanded'] = true;
         }
         if ($backgroundColor) {
             $item['backgroundColor'] = htmlspecialchars($backgroundColor);
         }
         if ($stopPageTree) {
-            $item['stopPageTree'] = $stopPageTree;
+            $item['stopPageTree'] = true;
         }
         $class = $this->resolvePageCssClassNames($page);
         if (!empty($class)) {
@@ -160,5 +159,14 @@ class TreeController extends \TYPO3\CMS\Backend\Controller\Page\TreeController
             }
         }
         return $items;
+    }
+
+    protected function getPageTreeRepository(): PageTreeRepository
+    {
+        if (method_exists(\TYPO3\CMS\Backend\Controller\Page\TreeController::class, 'getPageTreeRepository')) {
+            return parent::getPageTreeRepository();
+        }
+
+        return $this->pageTreeRepository;
     }
 }
